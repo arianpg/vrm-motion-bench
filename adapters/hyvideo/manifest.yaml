@@ -1,0 +1,48 @@
+# 動画生成（kind: video）。GEM-X などの動画入力のアダプターの前段で使う
+id: hyvideo
+name: HunyuanVideo 1.5（I2V）
+version: 0.1.0
+device: gpu
+kind: video
+
+inputs:
+  type: object
+  required: [text, image]
+  properties:
+    text: {type: string, title: プロンプト, x-input: text}
+    image: {type: string, title: 開始画像, x-input: file, x-accept: image}
+
+# 24fps・4k+1 フレーム（既定 121 フレーム＝約 5 秒）
+duration: {min: 1.5, max: 10.0, step: 0.1, auto_supported: false}
+defaults: {duration: 5.0}
+
+options:
+  resolution: 480p      # HYVIDEO_RESOLUTION で 720p に切り替え（720p の重みが必要）
+  step_distilled: true  # 480p I2V のステップ蒸留版（12 ステップ）
+  native_prompt_rewrite: false
+
+assets:
+  - id: hyvideo-dit
+    kind: manual_download
+    path: hyvideo/ckpts/transformer/480p_i2v_step_distilled
+    how_to: "hf download tencent/HunyuanVideo-1.5 --include 'config.json' --include 'scheduler/*' --include 'vae/*' --include 'transformer/480p_i2v_step_distilled/*' --local-dir models/hyvideo/ckpts"
+    license: Tencent Hunyuan Community License（EU・英国・韓国では適用外）
+  - id: hyvideo-text-encoders
+    kind: manual_download
+    path: hyvideo/ckpts/text_encoder/llm
+    how_to: "Qwen/Qwen2.5-VL-7B-Instruct を models/hyvideo/ckpts/text_encoder/llm に、google/byt5-small を text_encoder/byt5-small に、Glyph-SDXL-v2（nlpcvcode/Glyph-SDXL-v2 の assets/*.json と checkpoints/byt5_model.pt）を text_encoder/Glyph-SDXL-v2 に置く"
+    license: Apache 2.0（Qwen2.5-VL、byT5）
+  - id: siglip
+    kind: manual_download
+    path: hyvideo/ckpts/vision_encoder/siglip/image_encoder
+    # 公式手順は FLUX.1-Redux-dev（ゲート付き）の image_encoder だが、中身は同じ SigLIP（so400m-patch14-384）なので公開版を使う
+    how_to: "google/siglip-so400m-patch14-384 の config.json と model.safetensors を models/hyvideo/ckpts/vision_encoder/siglip/image_encoder に、preprocessor_config.json を siglip/feature_extractor に置く"
+    license: Apache 2.0（SigLIP）
+
+resources:
+  vram_gb: 24
+  load_time_s: 120
+  container_image: vmb-adapter-hyvideo
+  timeouts: {generate: 900}
+
+license_note: "HunyuanVideo 1.5: Tencent Hunyuan Community License（EU・英国・韓国では適用外）。実施環境は日本。個人の検証用途で利用する。"

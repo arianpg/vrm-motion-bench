@@ -30,7 +30,7 @@ export function GenerateForm({ adapters, onSubmitted }: { adapters: Manifest[]; 
         const f = files[key];
         if (f) {
           try {
-            inputs[key] = (await api.upload(prop['x-accept'] ?? 'video', f)).upload_id;
+            inputs[key] = (await api.upload(prop['x-accept'] === 'audio' ? 'audio' : 'video', f)).upload_id;
           } catch (err) {
             setError(`${prop.title ?? key}: ${(err as Error).message}`);
             setBusy(false);

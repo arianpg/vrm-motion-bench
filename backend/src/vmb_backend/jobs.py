@@ -19,7 +19,7 @@ from typing import Any, Callable, Literal
 
 log = logging.getLogger(__name__)
 
-JobType = Literal["llm_prompt", "motion", "convert", "group_preview"]
+JobType = Literal["llm_prompt", "video", "motion", "convert", "group_preview"]
 JobStatus = Literal["queued", "loading", "running", "done", "failed"]
 Resource = Literal["gpu", "cpu"]
 

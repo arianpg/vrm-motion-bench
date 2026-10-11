@@ -125,3 +125,6 @@ button.small { padding: 2px 8px; font-size: 12px; }
 a.button { margin-left: auto; background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; color: var(--text); text-decoration: none; font-size: 13px; }
 a.button:hover { border-color: var(--accent); }
 .search { margin-bottom: 10px; }
+.links { display: flex; gap: 10px; font-size: 12px; }
+.links a, .compare-table a { color: var(--accent); }
+.state-video { color: var(--warn); }

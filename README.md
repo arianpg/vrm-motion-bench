@@ -27,6 +27,8 @@ docker build -f adapters/kimodo/docker/Dockerfile -t vmb-adapter-kimodo .
 docker build -f adapters/ardy/docker/Dockerfile -t vmb-adapter-ardy .
 docker build -f adapters/momask/docker/Dockerfile -t vmb-adapter-momask .   # CPU で動く
 docker build -f adapters/hymotion/docker/Dockerfile -t vmb-adapter-hymotion .
+docker build -f adapters/hyvideo/docker/Dockerfile -t vmb-adapter-hyvideo .     # 動画生成（GEM-X の前段）
+docker build -f adapters/gemx/docker/Dockerfile -t vmb-adapter-gemx .
 
 # Kimodo の重み（初回起動時にも自動で取得されるが、事前に置いておくと速い）
 #   Llama-3-8B-Instruct は Hugging Face でのアクセス申請と HF_TOKEN が必要
@@ -54,6 +56,27 @@ hf download tencent/HY-Motion-1.0 --include 'HY-Motion-1.0/*' --local-dir models
 hf download openai/clip-vit-large-patch14 --exclude '*.msgpack' --exclude '*.h5' --exclude 'pytorch_model.bin'
 hf download Qwen/Qwen3-8B
 unset HF_HOME
+
+# HunyuanVideo 1.5（I2V、480p ステップ蒸留版）。テキストから GEM-X の入力動画を作るのに使う。合わせて約 55GB
+#   画像エンコーダ（SigLIP）は、公式手順の FLUX.1-Redux-dev（ゲート付き）の代わりに同じ構成の公開版を使う
+export HF_HOME=$PWD/models/hyvideo/hf C=models/hyvideo/ckpts
+hf download tencent/HunyuanVideo-1.5 --include 'config.json' --include 'scheduler/*' --include 'vae/*' \
+   --include 'transformer/480p_i2v_step_distilled/*' --local-dir $C
+hf download Qwen/Qwen2.5-VL-7B-Instruct --local-dir $C/text_encoder/llm
+hf download google/byt5-small --exclude '*.msgpack' --exclude '*.h5' --local-dir $C/text_encoder/byt5-small
+hf download nlpcvcode/Glyph-SDXL-v2 --include 'assets/*.json' --include 'checkpoints/byt5_model.pt' --local-dir $C/text_encoder/Glyph-SDXL-v2
+hf download google/siglip-so400m-patch14-384 config.json model.safetensors --local-dir $C/vision_encoder/siglip/image_encoder
+hf download google/siglip-so400m-patch14-384 preprocessor_config.json --local-dir $C/vision_encoder/siglip/feature_extractor
+unset HF_HOME C
+
+# GEM-X（動画 → SOMA77）。SAM 3D Body の重みを含む。合わせて約 7GB
+export HF_HOME=$PWD/models/gemx/hf I=models/gemx/inputs
+hf download nvidia/GEM-X gem_soma.ckpt --local-dir $I/pretrained
+hf download nvidia/GEM-X vitpose.pth --local-dir $I/checkpoints/vitpose
+hf download nvidia/GEM-X sam3d_body.ckpt model_config.yaml --local-dir $I/checkpoints/sam-3d-body-dinov3
+hf download nvidia/GEM-X mhr_model.pt --local-dir $I/mhr_data
+hf download nvidia/GEM-X scale_mean.pth scale_comps.pth --local-dir $I/soma_data
+unset HF_HOME I
 
 # プロンプト支援の LLM（llama-server の公式イメージ）
 docker pull ghcr.io/ggml-org/llama.cpp:server-cuda13

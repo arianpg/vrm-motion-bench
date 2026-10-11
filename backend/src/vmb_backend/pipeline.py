@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import shutil
 import time
@@ -48,6 +49,7 @@ class Pipeline:
         self.prompts = prompts
         self.cpu_services = CpuServicePool(containers)
         queue.register("llm_prompt", self._guard(self.run_llm_prompt))
+        queue.register("video", self._guard(self.run_video))
         queue.register("motion", self._guard(self.run_motion))
         queue.register("convert", self._guard(self.run_convert))
         queue.register("group_preview", self.run_group_preview)
@@ -66,13 +68,31 @@ class Pipeline:
         llm_prompt: str | None = None,
     ) -> tuple[str, Job]:
         manifest = self.manifests.get(adapter_id)
-        if manifest is None:
+        if manifest is None or manifest.kind != "motion":
             raise KeyError(f"unknown adapter: {adapter_id}")
         missing = [a for a in check_assets(manifest, self.settings.models_dir) if not a.ok]
         if missing:
             raise ContainerError("missing_asset", "; ".join(f"{a.id}: {a.detail}（{a.how_to}）" for a in missing))
         params = {**{k: v for k, v in manifest.defaults.items()}, **params}
+
+        # 動画入力のアダプターにテキストだけが来たら、動画生成を前段に挟む
+        video_adapter: Manifest | None = None
+        source = manifest.video_source
+        if source and not inputs.get(source.input):
+            if not str(inputs.get("text", "")).strip():
+                raise ContainerError("invalid_input", "テキストか動画のどちらかが必要")
+            video_adapter = self.manifests.get(source.adapter)
+            if video_adapter is None or video_adapter.kind != "video":
+                raise ContainerError("internal", f"動画生成のアダプター {source.adapter} がない")
+            v_missing = [a for a in check_assets(video_adapter, self.settings.models_dir) if not a.ok]
+            if v_missing:
+                raise ContainerError("missing_asset", "; ".join(f"{a.id}: {a.detail}（{a.how_to}）" for a in v_missing))
+            if not (self.settings.assets_dir / source.start_image).exists():
+                raise ContainerError("missing_asset", f"開始画像がない: assets/{source.start_image}")
+
         for key in self._file_inputs(manifest):
+            if video_adapter is not None and key == source.input:
+                continue  # 前段で生成する
             if inputs.get(key):
                 try:
                     resolve_upload(self.settings, str(inputs[key]))
@@ -92,6 +112,19 @@ class Pipeline:
             llm_model=llm_model,
             llm_prompt=llm_prompt,
         )
+        depends_on: list[str] = []
+        if video_adapter is not None:
+            video_job = Job(
+                id=new_id(),
+                type="video",
+                resource=video_adapter.device,
+                model_key=video_adapter.id,
+                result_id=rid,
+                group_id=group_id,
+                payload={"adapter_id": adapter_id, "video_adapter": video_adapter.id},
+            )
+            self.queue.submit(video_job)
+            depends_on.append(video_job.id)
         job = Job(
             id=new_id(),
             type="motion",
@@ -99,6 +132,7 @@ class Pipeline:
             model_key=adapter_id,
             result_id=rid,
             group_id=group_id,
+            depends_on=depends_on,
             payload={"adapter_id": adapter_id},
         )
         self.queue.submit(job)
@@ -262,6 +296,71 @@ class Pipeline:
             error=None,
         )
 
+    # ------------------------------------------------------------ video（動画生成の前段）
+
+    def run_video(self, job: Job) -> None:
+        manifest = self.manifests[job.payload["adapter_id"]]
+        source = manifest.video_source
+        video_manifest = self.manifests[job.payload["video_adapter"]]
+        rid = job.result_id
+        result = self.db.get_result(rid)
+
+        def on_status(status: str) -> None:
+            self.queue.update(job, status=status)
+            self._set_result(rid, status="video")
+
+        running = self.containers.ensure(self.containers.adapter_spec(video_manifest), on_status=on_status)
+        self.queue.update(job, status="running", progress=0.0)
+        self._set_result(rid, status="video")
+
+        job_dir = self.settings.jobs_dir / job.id
+        job_in, job_out = job_dir / "input", job_dir / "output"
+        job_in.mkdir(parents=True, exist_ok=True)
+        job_out.mkdir(parents=True, exist_ok=True)
+        start_image = self.settings.assets_dir / source.start_image
+        shutil.copy2(start_image, job_in / "start_image.png")
+
+        def container_path(path: Path) -> str:
+            return f"/data/{path.relative_to(self.settings.data_dir).as_posix()}"
+
+        params = {**source.params, **{k: v for k, v in result["params"].items() if k in ("duration", "seed")}}
+        payload = {
+            "job_id": job.id,
+            "inputs": {"text": result["inputs"].get("text", ""), "image": container_path(job_in / "start_image.png")},
+            "params": params,
+            "output_dir": container_path(job_out),
+        }
+        timeout = video_manifest.resources.timeouts.get("generate", self.settings.timeouts.generate)
+        body = self.containers.generate(running, payload, timeout, lambda p: self.queue.update(job, progress=round(p, 3)))
+
+        out = self.result_dir(rid)
+        video_name = body.get("outputs", {}).get("video")
+        if not video_name or not (job_out / video_name).exists():
+            raise ContainerError("internal", "動画生成の出力がない")
+        shutil.move(str(job_out / video_name), out / "input_video.mp4")
+        shutil.copy2(start_image, out / "start_image.png")
+        (out / "video_meta.json").write_text(
+            json.dumps(
+                {
+                    "adapter_id": video_manifest.id,
+                    "adapter_version": video_manifest.version,
+                    "start_image": source.start_image,
+                    "seed": body.get("seed"),
+                    "fps": body.get("fps"),
+                    "duration": body.get("duration"),
+                    **body.get("extra", {}),
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        shutil.rmtree(job_dir, ignore_errors=True)
+        self.db.add_result_files(
+            rid, {"video": "input_video.mp4", "start_image": "start_image.png", "video_meta": "video_meta.json"}
+        )
+        # 動画の seed を結果の seed として記録する（同じ条件での再実行に使う）
+        self._set_result(rid, seed=body.get("seed"))
+
     # ------------------------------------------------------------ motion
 
     def run_motion(self, job: Job) -> None:
@@ -282,11 +381,18 @@ class Pipeline:
 
         job_out = self.settings.jobs_dir / job.id / "output"
         job_out.mkdir(parents=True, exist_ok=True)
-        # アップロードしたファイルをジョブの入力ディレクトリに置き、コンテナ内のパスで渡す
+        # アップロードしたファイル（または前段で生成した動画）をジョブの入力ディレクトリに置き、
+        # コンテナ内のパスで渡す
         inputs = dict(result["inputs"])
         job_in = self.settings.jobs_dir / job.id / "input"
+        source = manifest.video_source
         for key in self._file_inputs(manifest):
-            if inputs.get(key):
+            if source and key == source.input and not inputs.get(key) and "video" in result["files"]:
+                src = self.result_dir(rid) / result["files"]["video"]
+                job_in.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src, job_in / src.name)
+                inputs[key] = f"/data/{(job_in / src.name).relative_to(self.settings.data_dir).as_posix()}"
+            elif inputs.get(key):
                 src = resolve_upload(self.settings, str(inputs[key]))
                 job_in.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(src, job_in / src.name)

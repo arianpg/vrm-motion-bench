@@ -1,0 +1,83 @@
+id: gemx
+name: GEM-X（動画 → SOMA77）
+version: 0.1.0
+device: gpu
+
+# 動画をアップロードするか、テキストを書くと HunyuanVideo 1.5 で動画を生成して入力にする
+# （docs/research/gemx-text-to-video.md）
+inputs:
+  type: object
+  properties:
+    text:
+      type: string
+      title: 動作の説明（動画を生成する場合）
+      x-input: text
+    video:
+      type: string
+      title: 動画（アップロードする場合）
+      x-input: file
+      x-accept: video
+    duration:
+      type: number
+      title: 尺（秒。動画を生成する場合）
+      x-input: duration
+    seed:
+      type: integer
+      title: seed（動画生成）
+      x-input: seed
+
+duration: {min: 1.5, max: 10.0, step: 0.1, auto_supported: false}
+defaults: {duration: 5.0, static_cam: true}
+
+video_source:
+  adapter: hyvideo
+  input: video
+  start_image: start_images/z-image_man3_fit.png
+
+prompt:
+  llm_assist: true
+  guide: |
+    The prompt is for an image-to-video model (HunyuanVideo 1.5). The first frame is already given:
+    a single adult man in a navy long-sleeve t-shirt, black jogger pants and white sneakers, standing
+    in a plain light gray studio, seen full body from the front-left at eye level by a static camera.
+    Write 2 to 4 English sentences that describe only how this man moves, in chronological order,
+    with concrete body movements (legs, arms, torso, direction, number of repetitions).
+    Keep the camera completely static and the man fully visible from head to feet the whole time;
+    do not describe camera moves, cuts, zoom, slow motion, other people, objects or scenery changes.
+    End with: "The camera stays still and the man's entire body remains in frame."
+  rules:
+    language: en
+    max_words: 120
+    forbidden_terms: [zoom, close-up, slow motion, cut to]
+
+options:
+  static_cam: true  # 生成動画・アップロード動画とも固定カメラとして扱う（GEM-X の公開版は VO を含まない）
+
+output:
+  skeleton: soma77
+  fps: 24  # 入力動画の fps（生成動画は 24fps）
+  up: "+Y"
+  forward: "+Z"
+  unit: m
+  rest_pose: tpose
+  foot_contacts: false
+  expressions: false
+
+assets:
+  - id: gemx-weights
+    kind: manual_download
+    path: gemx/inputs/pretrained/gem_soma.ckpt
+    how_to: "HF_HOME=models/gemx/hf hf download nvidia/GEM-X で gem_soma.ckpt を models/gemx/inputs/pretrained、vitpose.pth を inputs/checkpoints/vitpose、sam3d_body.ckpt と model_config.yaml を inputs/checkpoints/sam-3d-body-dinov3、mhr_model.pt を inputs/mhr_data、scale_mean.pth と scale_comps.pth を inputs/soma_data に置く"
+    license: NVIDIA Open Model License（GEM-X）、SAM License（SAM 3D Body）
+  - id: start-image
+    kind: auto
+    path: null
+    how_to: "assets/start_images/z-image_man3_fit.png（リポジトリに同梱）"
+
+resources:
+  vram_gb: 16
+  load_time_s: 90
+  container_image: vmb-adapter-gemx
+  timeouts: {generate: 900}
+
+license_note: "GEM-X: コードは Apache 2.0、モデルは NVIDIA Open Model License。SAM 3D Body は SAM License。動画生成は HunyuanVideo 1.5（Tencent Hunyuan Community License）。個人の検証用途で利用する。"

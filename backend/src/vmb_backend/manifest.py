@@ -52,6 +52,15 @@ class AssetSpec(BaseModel):
     license: str | None = None
 
 
+class VideoSourceSpec(BaseModel):
+    """動画入力のアダプターで、テキストから動画を生成して入力にするための設定。"""
+
+    adapter: str  # kind: video のアダプター ID
+    input: str = "video"  # 生成した動画を渡す入力欄
+    start_image: str  # assets ディレクトリからの相対パス（I2V の開始画像）
+    params: dict[str, Any] = Field(default_factory=dict)  # 動画生成に渡す追加のパラメータ
+
+
 class ResourceSpec(BaseModel):
     vram_gb: float = 0
     load_time_s: float | None = None
@@ -64,14 +73,17 @@ class Manifest(BaseModel):
     name: str
     version: str
     device: Literal["gpu", "cpu"]
+    # motion: モーションを返すアダプター。video: 動画を返すアダプター（ほかのアダプターの前段で使う）
+    kind: Literal["motion", "video"] = "motion"
     inputs: dict[str, Any]
     duration: DurationSpec | None = None
     defaults: dict[str, Any] = Field(default_factory=dict)
     prompt: PromptSpec = Field(default_factory=PromptSpec)
     options: dict[str, Any] = Field(default_factory=dict)
-    output: OutputSpec
+    output: OutputSpec | None = None  # kind: video では不要
     assets: list[AssetSpec] = Field(default_factory=list)
     resources: ResourceSpec
+    video_source: VideoSourceSpec | None = None
     license_note: str = ""
 
     # 読み込み元（API には出さない）

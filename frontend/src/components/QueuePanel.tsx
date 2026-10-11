@@ -2,6 +2,7 @@ import type { Health, Job } from '../api';
 
 const TYPE_LABEL: Record<Job['type'], string> = {
   llm_prompt: 'プロンプト生成',
+  video: '動画生成',
   motion: 'モーション生成',
   convert: 'VRMA変換',
   group_preview: 'グループプレビュー',

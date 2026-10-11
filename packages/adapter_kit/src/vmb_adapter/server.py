@@ -50,8 +50,11 @@ class GenerateRequest(BaseModel):
 
 
 class GenerateResult(BaseModel):
-    source_motion: str  # output_dir からの相対パス
+    # モーションのアダプターは SourceMotion を返す。動画生成のアダプター（kind: video）は None で、
+    # 生成した動画を outputs["video"] に入れる
+    source_motion: str | None = None  # output_dir からの相対パス
     raw_outputs: list[str]  # output_dir からの相対パス
+    outputs: dict[str, str] = Field(default_factory=dict)  # 種類 → output_dir からの相対パス
     fps: float
     num_frames: int
     duration: float

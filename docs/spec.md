@@ -348,7 +348,7 @@ Vite と vite-plugin-singlefile で JS・CSS をインライン化したテン�
 | ARDY | テキスト | Core骨格（cskel27、指なし）。NPZ（回転・接地フラグ） | 20 | GPU | 約16GB（実測。テキストエンコーダは Kimodo と同じ重みをハードリンクで共有） | 2（実装済み。SOMA 版は未公開のため Core 版を使う） |
 | MoMask | テキスト | HumanML3D 22関節 → 付属の IK で BVH（SMPL 系の関節名） | 20 | CPU | なし（CPU で読み込み約7秒、6秒のモーションを約10〜20秒で生成） | 2（実装済み。軽量な比較対象） |
 | HY-Motion 1.0 / Lite | 英語テキスト | SMPL-H 系の体 22 関節（6D 回転）。同梱の木製人形モデルの骨格を使う | 30 | GPU | 実測で約22GB（Qwen3-8B と CLIP-L を含む。公称は 26GB／24GB） | 3（1.0 を実装済み。Lite は `HYMOTION_VARIANT` で切り替え可能） |
-| GEM-X | 動画（アップロード、またはテキストから HunyuanVideo 1.5 で生成した動画） | SOMA77（軸角度・体型・ルート移動量） | 未確認 | GPU | 未確認 | 4（動画入力の最初の1本。中間動画生成の調査と決定事項は docs/research/gemx-text-to-video.md） |
+| GEM-X | 動画（アップロード、またはテキストから HunyuanVideo 1.5 で生成した動画） | SOMA77（軸角度・体型・ルート移動量）。Kimodo と同じ関節の並び | 入力動画の fps（生成動画は 24） | GPU | GEM-X は約12GB。動画生成（HunyuanVideo 1.5、480p、CPU 退避あり）はピーク約31GB | 4（実装済み。中間動画生成の調査と決定事項は docs/research/gemx-text-to-video.md） |
 | EMAGE | 音声 | SMPL-X＋FLAME（NPZ） | 30 | GPU | 未確認 | 5 |
 | EDGE | 音楽 | SMPL（関節位置、pkl）。Jukebox特徴抽出が必要 | 未確認 | GPU | 16GB以上 | 5 |
 

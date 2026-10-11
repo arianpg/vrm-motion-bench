@@ -1,6 +1,6 @@
 // オーケストレーターの API 型と呼び出し
 
-export type ResultStatus = 'queued' | 'loading' | 'running' | 'converting' | 'done' | 'failed';
+export type ResultStatus = 'queued' | 'video' | 'loading' | 'running' | 'converting' | 'done' | 'failed';
 export type JobStatus = 'queued' | 'loading' | 'running' | 'done' | 'failed';
 
 export interface AssetStatus {
@@ -15,7 +15,7 @@ export interface InputProperty {
   type: string;
   title?: string;
   'x-input'?: 'text' | 'duration' | 'seed' | 'file';
-  'x-accept'?: 'video' | 'audio';
+  'x-accept'?: 'video' | 'audio' | 'image';
 }
 
 export interface Manifest {
@@ -23,6 +23,7 @@ export interface Manifest {
   name: string;
   version: string;
   device: 'gpu' | 'cpu';
+  kind: 'motion' | 'video';
   inputs: { type: 'object'; required?: string[]; properties: Record<string, InputProperty> };
   duration: { min: number; max: number; step: number; auto_supported: boolean } | null;
   defaults: Record<string, unknown>;
@@ -59,7 +60,7 @@ export interface Result {
 
 export interface Job {
   id: string;
-  type: 'llm_prompt' | 'motion' | 'convert' | 'group_preview';
+  type: 'llm_prompt' | 'video' | 'motion' | 'convert' | 'group_preview';
   resource: 'gpu' | 'cpu';
   model_key: string | null;
   result_id: string | null;

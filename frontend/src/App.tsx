@@ -25,7 +25,8 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.adapters().then(setAdapters).catch((e: Error) => setError(e.message));
+    // 動画生成のアダプター（kind: video）は、ほかのアダプターの前段でだけ使う
+    api.adapters().then((list) => setAdapters(list.filter((a) => a.kind === 'motion'))).catch((e: Error) => setError(e.message));
   }, []);
 
   useEffect(() => {

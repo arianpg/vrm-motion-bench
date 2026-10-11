@@ -1,4 +1,4 @@
-import type { Result } from '../api';
+import { fileUrl, type Result } from '../api';
 
 // 比較中の結果のメタデータを並べる。行ごとに VRM を差し替えられる
 export function CompareTable({
@@ -41,6 +41,11 @@ export function CompareTable({
                 {r.final_prompt ?? String(r.inputs.text ?? '')}
                 {r.llm_prompt && r.llm_prompt !== r.final_prompt && (
                   <div className="muted small">LLM 案: {r.llm_prompt}</div>
+                )}
+                {r.files.video && (
+                  <div className="small">
+                    <a href={fileUrl(r, 'video') ?? '#'} target="_blank" rel="noreferrer">入力動画</a>
+                  </div>
                 )}
               </td>
               <td>{r.seed ?? '–'}</td>

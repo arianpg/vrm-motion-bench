@@ -3,6 +3,7 @@ import { api, fileUrl, type Job, type Result } from '../api';
 
 const STATUS_LABEL: Record<Result['status'], string> = {
   queued: '待機中',
+  video: '動画生成中',
   loading: 'モデル読み込み中',
   running: '生成中',
   converting: '変換中',
@@ -97,6 +98,12 @@ export function ResultList({
           <div className="numbers">
             seed {r.seed ?? '–'} · 尺 {r.duration?.toFixed(1) ?? '–'}s · ロード {seconds(r.load_seconds)} · 生成 {seconds(r.generate_seconds)} · 変換 {seconds(r.convert_seconds)}
           </div>
+          {r.files.video && (
+            <div className="links" onClick={(e) => e.stopPropagation()}>
+              <a href={fileUrl(r, 'video') ?? '#'} target="_blank" rel="noreferrer">入力動画</a>
+              {r.files.start_image && <a href={fileUrl(r, 'start_image') ?? '#'} target="_blank" rel="noreferrer">開始画像</a>}
+            </div>
+          )}
           {r.error && <div className="error small">{r.error}</div>}
           {r.status === 'failed' && (
             <div>

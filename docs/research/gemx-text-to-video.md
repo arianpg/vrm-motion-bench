@@ -86,6 +86,22 @@ Z-Image Turbo は全身写真でも人物を画面いっぱい（高さの約 9 
 背景が無地で床が均一なことを利用し、`tools/start_images/fit_start_image.py` で 0.7 倍に縮小して背景を延長し、
 人物が画面の高さの約 6 割になる `z-image_man3_fit.png` を事前に作って保存した（縮小の条件は PNG の `vmb_fit` に記録）。
 
+## 実装結果（2026-10-12）
+
+- **構成**：動画生成を独立したアダプター（`adapters/hyvideo`、kind: video）にし、GEM-X（`adapters/gemx`）のマニフェストの
+  `video_source` で前段に指定する。テキストだけが入力されると、動画生成ジョブ（GPU）→ GEM-X のジョブの順に実行する。
+  生成した動画・開始画像・生成条件（`video_meta.json`）は結果に保存し、画面から開ける
+- **HunyuanVideo 1.5**：480p I2V ステップ蒸留版（12 ステップ）、CPU 退避あり、flash-attn 2。5 秒（121 フレーム、848×480）を
+  約 2 分で生成。VRAM のピークは約 31GB（32GB にかなり近い）。モデルの読み込みは約 12 秒
+- **SigLIP**：公式手順の FLUX.1-Redux-dev（ゲート付き）の代わりに、同じ構成の公開版 google/siglip-so400m-patch14-384 を使う
+  （FLUX Redux は SigLIP を固定して使っているはずなので同一と考えているが、重みの同一性は確認していない）
+- **GEM-X**：PyTorch 2.10（CUDA 12.8）。SOMA のアセットはサブモジュール同梱版を使う（Hugging Face の最新版は固定したコードと
+  版が合わない）。固定カメラとして推定し、足裏を地面に、最初のフレームで +Z を向くように正規化する。
+  関節名は Kimodo の SOMA77 と同じ並びで、ボーン対応表を共有できる。順運動学と SOMA の関節位置の誤差は 0。
+  5 秒の動画を、初回（前処理モデルの読み込みを含む）は約 50〜80 秒、2 回目以降は約 8 秒で推定。VRAM は約 12GB
+- **動作確認**：「前に数歩歩いてから、右手を頭の上で大きく 2 回振る」で、LLM のプロンプト → 動画生成 → GEM-X → VRMA まで通り、
+  Kimodo と並べて同じ動きになることを確認した
+
 ## 出典
 
 - [NVlabs/GEM-X](https://github.com/NVlabs/GEM-X) / [GEM-X DEMO.md](https://github.com/NVlabs/GEM-X/blob/main/docs/DEMO.md)
