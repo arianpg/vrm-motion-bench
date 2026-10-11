@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Node
+node_modules/
+dist/
+dist-report/
+
+# 実行時データ・モデル重み（リポジトリに含めない）
+data/
+models/
+
+# Blender
+*.blend1
+*.tsbuildinfo

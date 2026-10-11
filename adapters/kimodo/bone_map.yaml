@@ -1,0 +1,59 @@
+# SOMA77（Kimodo 出力）の関節名 → VRM 1.0 ヒューマノイドボーン名
+# 載っていない関節（Neck2、HeadEnd、目、指の付け根の Index1 等、指先・つま先の End）は
+# リターゲット時に飛ばされ、その回転は子の関節のワールド回転に含まれる。
+Hips: hips
+Spine1: spine
+Spine2: chest
+Chest: upperChest
+Neck1: neck
+Head: head
+Jaw: jaw
+
+LeftShoulder: leftShoulder
+LeftArm: leftUpperArm
+LeftForeArm: leftLowerArm
+LeftHand: leftHand
+LeftHandThumb1: leftThumbMetacarpal
+LeftHandThumb2: leftThumbProximal
+LeftHandThumb3: leftThumbDistal
+LeftHandIndex2: leftIndexProximal
+LeftHandIndex3: leftIndexIntermediate
+LeftHandIndex4: leftIndexDistal
+LeftHandMiddle2: leftMiddleProximal
+LeftHandMiddle3: leftMiddleIntermediate
+LeftHandMiddle4: leftMiddleDistal
+LeftHandRing2: leftRingProximal
+LeftHandRing3: leftRingIntermediate
+LeftHandRing4: leftRingDistal
+LeftHandPinky2: leftLittleProximal
+LeftHandPinky3: leftLittleIntermediate
+LeftHandPinky4: leftLittleDistal
+
+RightShoulder: rightShoulder
+RightArm: rightUpperArm
+RightForeArm: rightLowerArm
+RightHand: rightHand
+RightHandThumb1: rightThumbMetacarpal
+RightHandThumb2: rightThumbProximal
+RightHandThumb3: rightThumbDistal
+RightHandIndex2: rightIndexProximal
+RightHandIndex3: rightIndexIntermediate
+RightHandIndex4: rightIndexDistal
+RightHandMiddle2: rightMiddleProximal
+RightHandMiddle3: rightMiddleIntermediate
+RightHandMiddle4: rightMiddleDistal
+RightHandRing2: rightRingProximal
+RightHandRing3: rightRingIntermediate
+RightHandRing4: rightRingDistal
+RightHandPinky2: rightLittleProximal
+RightHandPinky3: rightLittleIntermediate
+RightHandPinky4: rightLittleDistal
+
+LeftLeg: leftUpperLeg
+LeftShin: leftLowerLeg
+LeftFoot: leftFoot
+LeftToeBase: leftToes
+RightLeg: rightUpperLeg
+RightShin: rightLowerLeg
+RightFoot: rightFoot
+RightToeBase: rightToes

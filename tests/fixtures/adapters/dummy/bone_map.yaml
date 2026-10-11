@@ -1,0 +1,17 @@
+Pelvis: hips
+Spine: spine
+Chest: chest
+Neck: neck
+Head: head
+L_Arm: leftUpperArm
+L_Elbow: leftLowerArm
+L_Wrist: leftHand
+R_Arm: rightUpperArm
+R_Elbow: rightLowerArm
+R_Wrist: rightHand
+L_Hip: leftUpperLeg
+L_Knee: leftLowerLeg
+L_Ankle: leftFoot
+R_Hip: rightUpperLeg
+R_Knee: rightLowerLeg
+R_Ankle: rightFoot

@@ -1,0 +1,19 @@
+# プロンプト支援に使う LLM（仕様: docs/spec.md「LLMプロンプト支援」）
+# gguf は models ディレクトリ（VMB_MODELS_DIR）からの相対パス
+image: ghcr.io/ggml-org/llama.cpp:server-cuda13
+default: qwen3.8-27b
+
+models:
+  qwen3.8-27b:
+    name: Qwen3.8-27B（UD-Q5_K_M）
+    gguf: llm/qwen3.8-27b/Qwen3.8-27B-UD-Q5_K_M.gguf
+    download: "hf download unsloth/Qwen3.8-27B-GGUF Qwen3.8-27B-UD-Q5_K_M.gguf --local-dir models/llm/qwen3.8-27b"
+    context: 16384
+    thinking: true
+    reasoning_budget: 4096   # 思考トークンの上限（暫定）
+    max_answer_tokens: 1024  # 回答部分の上限（暫定）
+    sampling: {temperature: 0.6, top_p: 0.95, top_k: 20, min_p: 0.0}
+    vram_gb: 23
+    load_time_s: 60
+
+retry_limit: 3  # rules 違反時の再生成回数（暫定。初回と合わせて最大 4 回）

@@ -1,0 +1,20 @@
+# パイプライン検証用のダミーアダプター（合成モーションを返す。GPU は使わないが GPU キューを通す）
+id: dummy
+name: Dummy (pipeline test)
+version: 0.1.0
+device: gpu
+inputs:
+  type: object
+  required: [text]
+  properties:
+    text: {type: string, title: プロンプト, x-input: text}
+    duration: {type: number, title: 尺（秒）, x-input: duration}
+    seed: {type: integer, title: seed, x-input: seed}
+    reference: {type: string, title: 参考動画（任意。アップロードの検証用）, x-input: file, x-accept: video}
+duration: {min: 1.0, max: 10.0, step: 0.1, auto_supported: false}
+defaults: {duration: 3.0}
+prompt: {llm_assist: false, guide: "", rules: {}}
+output: {skeleton: dummy17, fps: 20, up: "+Z", forward: "-Y", unit: m, rest_pose: apose, foot_contacts: false, expressions: false}
+assets: []
+resources: {vram_gb: 0, load_time_s: 5, container_image: vmb-adapter-dummy}
+license_note: "テスト用"

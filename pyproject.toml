@@ -1,0 +1,15 @@
+[project]
+name = "vrm-motion-bench"
+version = "0.1.0"
+description = "VRM Motion Bench workspace root"
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["packages/*", "backend"]
+
+[dependency-groups]
+dev = ["pytest>=8"]

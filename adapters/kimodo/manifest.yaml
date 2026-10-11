@@ -1,0 +1,71 @@
+id: kimodo
+name: Kimodo (SOMA)
+version: 0.1.0
+device: gpu
+
+inputs:
+  type: object
+  required: [text]
+  properties:
+    text:
+      type: string
+      title: プロンプト
+      x-input: text
+    duration:
+      type: number
+      title: 尺（秒）
+      x-input: duration
+    seed:
+      type: integer
+      title: seed
+      x-input: seed
+
+duration: {min: 1.0, max: 10.0, step: 0.1, auto_supported: false}
+defaults: {duration: 5.0, num_samples: 1, diffusion_steps: 100}
+
+prompt:
+  llm_assist: true
+  guide: |
+    Write one English sentence that begins with "A person ...".
+    Focus on one or at most two behaviors, described with a medium level of detail
+    (not too vague, not a body-part-by-body-part description).
+    Kimodo is trained on locomotion, gestures and everyday activities. Avoid sports
+    or actions outside these categories, objects, other people and camera directions.
+    Each prompt must make sense on its own. Maximum duration is 10 seconds.
+  rules:
+    language: en
+    starts_with: "A person"
+    max_words: 40
+
+options: {}
+
+output:
+  skeleton: soma77
+  fps: 30
+  up: "+Y"
+  forward: "+Z"
+  unit: m
+  rest_pose: tpose
+  foot_contacts: true
+  expressions: false
+
+assets:
+  - id: kimodo-weights
+    kind: auto
+    path: kimodo/hf
+    how_to: "初回起動時に Hugging Face（nvidia/Kimodo-SOMA-RP-v1.1）から自動でダウンロードされる"
+    license: NVIDIA Open Model License
+  - id: llama3-8b
+    kind: hf_gated
+    repo: meta-llama/Meta-Llama-3-8B-Instruct
+    path: kimodo/hf
+    how_to: "Hugging Face で meta-llama/Meta-Llama-3-8B-Instruct のアクセス申請をし、HF_TOKEN を設定する"
+    license: Meta Llama 3 Community License
+
+resources:
+  vram_gb: 17
+  load_time_s: 90
+  container_image: vmb-adapter-kimodo
+  timeouts: {}
+
+license_note: "Kimodo 重み: NVIDIA Open Model License。テキストエンコーダ: Meta Llama 3 Community License。個人の検証用途で利用する。"
