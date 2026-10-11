@@ -24,6 +24,7 @@
 # Docker イメージ（ビルドコンテキストはリポジトリのルート）
 docker build -f converter/Dockerfile -t vmb-converter .
 docker build -f adapters/kimodo/docker/Dockerfile -t vmb-adapter-kimodo .
+docker build -f adapters/ardy/docker/Dockerfile -t vmb-adapter-ardy .
 
 # Kimodo の重み（初回起動時にも自動で取得されるが、事前に置いておくと速い）
 #   Llama-3-8B-Instruct は Hugging Face でのアクセス申請と HF_TOKEN が必要
@@ -32,6 +33,13 @@ hf download nvidia/Kimodo-SOMA-RP-v1.1
 hf download McGill-NLP/LLM2Vec-Meta-Llama-3-8B-Instruct-mntp
 hf download McGill-NLP/LLM2Vec-Meta-Llama-3-8B-Instruct-mntp-supervised
 hf download meta-llama/Meta-Llama-3-8B-Instruct --exclude 'original/*'
+
+# ARDY の重み。テキストエンコーダ（LLM2Vec / Llama-3-8B）は Kimodo と同じなので、
+# 同じディスク上ならハードリンクで共有する（容量を使わない）
+mkdir -p models/ardy/hf/hub
+cp -al models/kimodo/hf/hub/blobs models/kimodo/hf/hub/models--McGill-NLP--* \
+       models/kimodo/hf/hub/models--meta-llama--* models/ardy/hf/hub/
+HF_HOME=$PWD/models/ardy/hf hf download nvidia/ARDY-Core-RP-20FPS-Horizon40
 
 # プロンプト支援の LLM（llama-server の公式イメージ）
 docker pull ghcr.io/ggml-org/llama.cpp:server-cuda13

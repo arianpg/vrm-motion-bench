@@ -6,11 +6,10 @@ import os
 import random
 from pathlib import Path
 
-import numpy as np
 import torch
 
-from sourcemotion import SourceMotion, quat
 from vmb_adapter import Adapter, AdapterError, GenerateRequest, GenerateResult, ProgressCallback, serve
+from vmb_adapter.nv_motion import to_source_motion
 
 ADAPTER_ID = "kimodo"
 ADAPTER_VERSION = "0.1.0"
@@ -84,7 +83,7 @@ class KimodoAdapter(Adapter):
             "diffusion_steps": steps,
             "raw_outputs": [raw_name],
         }
-        motion = to_source_motion(single, self.skeleton, self.contact_skeleton, fps, meta)
+        motion = to_source_motion(single, self.skeleton, fps, meta, contact_skeletons=(self.contact_skeleton,))
         motion.save(output_dir / "source_motion.npz")
         progress(1.0)
         return GenerateResult(
@@ -95,65 +94,6 @@ class KimodoAdapter(Adapter):
             duration=motion.duration,
             seed=seed,
         )
-
-
-def to_source_motion(output: dict, skeleton, contact_skeleton, fps: float, meta: dict) -> SourceMotion:
-    """Kimodo の出力（1 サンプル分）を SourceMotion に変換する。
-
-    Kimodo の SOMA は Y-up・+Z 前方・メートル。回転ゼロの姿勢が内部の標準 T ポーズで、
-    そのときの関節位置が skeleton.neutral_joints（ルートは原点）。
-    """
-    names = list(skeleton.bone_order_names)
-    parents = np.asarray(skeleton.joint_parents.cpu().numpy(), dtype=np.int32)
-    neutral = skeleton.neutral_joints.cpu().numpy().astype(np.float64)  # [J, 3]
-    if skeleton.root_idx != 0:
-        raise AdapterError("internal", f"unexpected root index {skeleton.root_idx}")
-
-    offsets = np.zeros_like(neutral)
-    offsets[1:] = neutral[1:] - neutral[parents[1:]]
-    # offsets[0] はレスト時のルート位置。足裏が y=0 になる高さに置く
-    offsets[0] = [0.0, -neutral[:, 1].min(), 0.0]
-
-    if "local_rot_mats" in output:
-        local_mats = np.asarray(output["local_rot_mats"])
-    else:
-        global_mats = np.asarray(output["global_rot_mats"])
-        local_mats = np.einsum("tjba,tjbc->tjac", global_mats[:, parents.clip(0)], global_mats)
-        local_mats[:, 0] = global_mats[:, 0]
-    local = quat.make_continuous(quat.from_matrix(local_mats))
-
-    root = np.asarray(output["root_positions"] if "root_positions" in output else output["posed_joints"][:, 0])
-
-    contacts = output.get("foot_contacts")
-    contact_names = None
-    if contacts is not None:
-        contacts = np.asarray(contacts).astype(bool)
-        # 出力（SOMA77）の足の関節（左右 3 つずつ）に対応する。推論用の骨格の定義も候補にする
-        for skel in (skeleton, contact_skeleton):
-            candidates = list(getattr(skel, "foot_joint_names", []) or [])
-            if len(candidates) == contacts.shape[1] and all(n in names for n in candidates):
-                contact_names = candidates
-                break
-        else:
-            contacts = None  # 対応関節が特定できない場合は付けない
-
-    motion = SourceMotion(
-        joint_names=names,
-        parents=parents,
-        offsets=offsets.astype(np.float32),
-        rest_rotations=np.tile(quat.IDENTITY, (len(names), 1)),
-        local_rotations=local.astype(np.float32),
-        root_translation=root.astype(np.float32),
-        fps=fps,
-        up_axis="+Y",
-        forward_axis="+Z",
-        rest_pose_kind="tpose",
-        meta=meta,
-        foot_contacts=contacts,
-        contact_joint_names=contact_names,
-    )
-    motion.validate()
-    return motion
 
 
 if __name__ == "__main__":

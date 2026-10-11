@@ -1,0 +1,73 @@
+id: ardy
+name: ARDY (Core)
+version: 0.1.0
+device: gpu
+
+inputs:
+  type: object
+  required: [text]
+  properties:
+    text:
+      type: string
+      title: プロンプト
+      x-input: text
+    duration:
+      type: number
+      title: 尺（秒）
+      x-input: duration
+    seed:
+      type: integer
+      title: seed
+      x-input: seed
+
+# ARDY は自己回帰で任意の長さを作れるが、学習時の窓が 10 秒なので比較用には 10 秒までにする
+duration: {min: 1.0, max: 10.0, step: 0.05, auto_supported: false}
+defaults: {duration: 5.0, num_samples: 1}
+
+prompt:
+  llm_assist: true
+  guide: |
+    Write one short, plain English sentence that begins with "A person ...", in the present tense,
+    for example "A person walks in a circle." or "A person jumps forward twice."
+    Describe one main behavior (at most two), focusing on whole-body movement and locomotion
+    rather than fine finger or facial details (the model has no finger joints).
+    Avoid objects, other people, emotions, appearance and camera directions.
+    The model generates motion autoregressively; keep durations within 10 seconds.
+  rules:
+    language: en
+    starts_with: "A person"
+    max_words: 30
+
+options:
+  model: core40  # Horizon40（既定）。core8 は応答が速いが品質が下がる
+
+output:
+  skeleton: cskel27
+  fps: 20
+  up: "+Y"
+  forward: "+Z"
+  unit: m
+  rest_pose: tpose
+  foot_contacts: true
+  expressions: false
+
+assets:
+  - id: ardy-weights
+    kind: auto
+    path: ardy/hf
+    how_to: "初回起動時に Hugging Face（nvidia/ARDY-Core-RP-20FPS-Horizon40）から自動でダウンロードされる"
+    license: NVIDIA Open Model License
+  - id: llama3-8b
+    kind: hf_gated
+    repo: meta-llama/Meta-Llama-3-8B-Instruct
+    path: ardy/hf
+    how_to: "Hugging Face で meta-llama/Meta-Llama-3-8B-Instruct のアクセス申請をし、HF_TOKEN を設定する（Kimodo と共通の重み。models/kimodo/hf からハードリンクで共有できる）"
+    license: Meta Llama 3 Community License
+
+resources:
+  vram_gb: 17
+  load_time_s: 90
+  container_image: vmb-adapter-ardy
+  timeouts: {}
+
+license_note: "ARDY 重み: NVIDIA Open Model License。コード: Apache 2.0。テキストエンコーダ: Meta Llama 3 Community License。個人の検証用途で利用する。"

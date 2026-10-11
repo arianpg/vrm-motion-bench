@@ -1,0 +1,27 @@
+# ARDY Core 骨格（cskel27）の関節名 → VRM 1.0 ヒューマノイドボーン名
+# Core は背骨が 4 つ（Spine〜Spine3）なので Spine1 を飛ばし、VRM の spine / chest / upperChest に割り当てる。
+# 指は親指の付け根（Thumb1）しかないため割り当てない（手の向きは HandEnd で決まる）。
+Hips: hips
+Spine: spine
+Spine2: chest
+Spine3: upperChest
+Neck: neck
+Head: head
+
+LeftShoulder: leftShoulder
+LeftArm: leftUpperArm
+LeftForeArm: leftLowerArm
+LeftHand: leftHand
+RightShoulder: rightShoulder
+RightArm: rightUpperArm
+RightForeArm: rightLowerArm
+RightHand: rightHand
+
+LeftUpLeg: leftUpperLeg
+LeftLeg: leftLowerLeg
+LeftFoot: leftFoot
+LeftToeBase: leftToes
+RightUpLeg: rightUpperLeg
+RightLeg: rightLowerLeg
+RightFoot: rightFoot
+RightToeBase: rightToes
