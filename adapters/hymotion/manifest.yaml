@@ -1,0 +1,73 @@
+id: hymotion
+name: HY-Motion 1.0
+version: 0.1.0
+device: gpu
+
+inputs:
+  type: object
+  required: [text]
+  properties:
+    text:
+      type: string
+      title: プロンプト
+      x-input: text
+    duration:
+      type: number
+      title: 尺（秒）
+      x-input: duration
+    seed:
+      type: integer
+      title: seed
+      x-input: seed
+
+# 30fps・最大 360 フレーム（12 秒）。20 フレーム未満は切り上げられる
+duration: {min: 1.0, max: 12.0, step: 0.1, auto_supported: false}
+defaults: {duration: 5.0, cfg_scale: 5.0}
+
+prompt:
+  llm_assist: true
+  guide: |
+    Write one English description of the motion, preferably under 30 words (never over 60).
+    Focus on the actions and on detailed movements of the limbs and torso, in order
+    (e.g. "A person steps forward with the left foot, swings both arms, then crouches down.").
+    Not supported: animals or non-human characters, emotions, clothing or appearance,
+    environment, objects or camera angles, multiple people, seamless loops or in-place animations.
+  rules:
+    language: en
+    max_words: 60
+
+options:
+  # HY-Motion 内蔵のプロンプト書き直し・尺推定（Text2MotionPrompter）は使わない。
+  # VRAM の節約と、他のモデルと比較条件をそろえるため（仕様書「初期アダプター候補」）
+  native_prompt_rewrite: false
+  variant: HY-Motion-1.0
+
+output:
+  skeleton: smplh22
+  fps: 30
+  up: "+Y"
+  forward: "+Z"
+  unit: m
+  rest_pose: tpose
+  foot_contacts: false
+  expressions: false
+
+assets:
+  - id: hymotion-weights
+    kind: manual_download
+    path: hymotion/ckpts/tencent/HY-Motion-1.0/latest.ckpt
+    how_to: "HF_HOME=models/hymotion/hf hf download tencent/HY-Motion-1.0 --include 'HY-Motion-1.0/*' --local-dir models/hymotion/ckpts/tencent"
+    license: Tencent HY-Motion 1.0 Community License（EU・英国・韓国では適用外）
+  - id: text-encoders
+    kind: manual_download
+    path: hymotion/hf/hub/models--Qwen--Qwen3-8B
+    how_to: "HF_HOME=models/hymotion/hf で openai/clip-vit-large-patch14 と Qwen/Qwen3-8B を hf download する"
+    license: MIT（CLIP）、Apache 2.0（Qwen3）
+
+resources:
+  vram_gb: 26
+  load_time_s: 90
+  container_image: vmb-adapter-hymotion
+  timeouts: {}
+
+license_note: "HY-Motion 1.0: Tencent HY-Motion 1.0 Community License（EU・英国・韓国では適用外）。テキストエンコーダ: CLIP（MIT）、Qwen3-8B（Apache 2.0）。個人の検証用途で利用する。"
