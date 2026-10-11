@@ -25,6 +25,7 @@
 docker build -f converter/Dockerfile -t vmb-converter .
 docker build -f adapters/kimodo/docker/Dockerfile -t vmb-adapter-kimodo .
 docker build -f adapters/ardy/docker/Dockerfile -t vmb-adapter-ardy .
+docker build -f adapters/momask/docker/Dockerfile -t vmb-adapter-momask .   # CPU で動く
 
 # Kimodo の重み（初回起動時にも自動で取得されるが、事前に置いておくと速い）
 #   Llama-3-8B-Instruct は Hugging Face でのアクセス申請と HF_TOKEN が必要
@@ -40,6 +41,11 @@ mkdir -p models/ardy/hf/hub
 cp -al models/kimodo/hf/hub/blobs models/kimodo/hf/hub/models--McGill-NLP--* \
        models/kimodo/hf/hub/models--meta-llama--* models/ardy/hf/hub/
 HF_HOME=$PWD/models/ardy/hf hf download nvidia/ARDY-Core-RP-20FPS-Horizon40
+
+# MoMask の重み（Google Drive。公式の prepare/download_models.sh と同じファイル）
+mkdir -p models/momask/checkpoints/t2m && cd models/momask/checkpoints/t2m
+gdown 1vXS7SHJBgWPt59wupQ5UUzhFObrnGkQ0 -O humanml3d_models.zip && unzip humanml3d_models.zip && rm humanml3d_models.zip
+cd -   # CLIP（ViT-B/32）は初回起動時に models/momask/clip へ自動でダウンロードされる
 
 # プロンプト支援の LLM（llama-server の公式イメージ）
 docker pull ghcr.io/ggml-org/llama.cpp:server-cuda13

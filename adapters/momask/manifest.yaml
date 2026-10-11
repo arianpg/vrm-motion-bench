@@ -1,0 +1,71 @@
+id: momask
+name: MoMask (HumanML3D)
+version: 0.1.0
+device: cpu
+
+inputs:
+  type: object
+  required: [text]
+  properties:
+    text:
+      type: string
+      title: プロンプト
+      x-input: text
+    duration:
+      type: number
+      title: 尺（秒。空欄ならモデルが推定）
+      x-input: duration
+    seed:
+      type: integer
+      title: seed
+      x-input: seed
+
+# 20fps・4 フレーム単位（0.2 秒刻み）。HumanML3D の最大長は 196 フレーム（9.8 秒）
+duration: {min: 2.0, max: 9.8, step: 0.2, auto_supported: true}
+defaults: {}
+
+prompt:
+  llm_assist: true
+  guide: |
+    Write one English sentence in the HumanML3D caption style, e.g. "A person is running on a treadmill."
+    or "A person walks forward, then turns around and sits down."
+    Describe the body movement plainly in the third person ("A person ..."), with one to three short
+    actions in order. Avoid objects, other people, emotions, appearance and camera directions.
+    The model has no finger joints. Durations are 2 to 9.8 seconds in steps of 0.2 seconds.
+  rules:
+    language: en
+    starts_with: "A person"
+    max_words: 40
+
+options:
+  foot_ik: false  # 付属の足の IK は失敗することがあるため既定では使わない
+
+output:
+  skeleton: humanml3d22
+  fps: 20
+  up: "+Y"
+  forward: "+Z"
+  unit: m
+  rest_pose: tpose
+  foot_contacts: true
+  expressions: false
+
+assets:
+  - id: momask-checkpoints
+    kind: manual_download
+    path: momask/checkpoints/t2m/t2m_nlayer8_nhead6_ld384_ff1024_cdp0.1_rvq6ns
+    how_to: "models/momask/checkpoints/t2m で `gdown 1vXS7SHJBgWPt59wupQ5UUzhFObrnGkQ0 -O humanml3d_models.zip` を実行して展開する（公式の prepare/download_models.sh と同じファイル）"
+    license: MIT（コード）。重みのライセンスは明記なし
+  - id: clip-vit-b32
+    kind: auto
+    path: momask/clip
+    how_to: "初回起動時に OpenAI CLIP（ViT-B/32、約 350MB）が models/momask/clip に自動でダウンロードされる"
+    license: MIT
+
+resources:
+  vram_gb: 0
+  load_time_s: 30
+  container_image: vmb-adapter-momask
+  timeouts: {}
+
+license_note: "MoMask: コードは MIT。学習データは HumanML3D（AMASS 由来）。個人の検証用途で利用する。"
