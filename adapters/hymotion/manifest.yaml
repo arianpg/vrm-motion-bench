@@ -70,4 +70,11 @@ resources:
   container_image: vmb-adapter-hymotion
   timeouts: {}
 
+# 比較動画・レポートに出すクレジット（docs/licenses.md）
+credit:
+  text: HY-Motion 1.0 (Tencent Hunyuan)
+  notes:
+    - "公開するときは機械生成であることを明示する（利用規定 12 項）"
+    - "ライセンスは EU・英国・韓国では適用外（出力の表示も地域の外では許諾されない）"
+
 license_note: "HY-Motion 1.0: Tencent HY-Motion 1.0 Community License（EU・英国・韓国では適用外）。テキストエンコーダ: CLIP（MIT）、Qwen3-8B（Apache 2.0）。個人の検証用途で利用する。"

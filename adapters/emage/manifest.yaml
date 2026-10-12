@@ -48,4 +48,10 @@ resources:
   container_image: vmb-adapter-emage
   timeouts: {}
 
+# 比較動画・レポートに出すクレジット（docs/licenses.md）
+credit:
+  text: EMAGE + SMPL-X
+  noncommercial: true
+  notes: ["SMPL-X は非商用の研究・教育・芸術の用途に限られ、偽の内容・誤解を招く内容の作成は禁止"]
+
 license_note: "EMAGE: 重みは Apache 2.0（Hugging Face の表記）、PantoMatrix のコードはライセンスの明記なし。学習データは BEAT2（英語話者の講演）。SMPL-X のモデルは SMPL-X Model License。個人の検証用途で利用する。"

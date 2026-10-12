@@ -24,6 +24,7 @@ export default function App() {
   const [models, setModels] = useState<Record<string, string | null>>({});
   const [error, setError] = useState<string | null>(null);
   const [exportRequest, setExportRequest] = useState(0);
+  const [credit, setCredit] = useState('');
 
   useEffect(() => {
     // 動画生成のアダプター（kind: video）は、ほかのアダプターの前段でだけ使う
@@ -91,6 +92,17 @@ export default function App() {
     );
   }, [compared.map((r) => r.id).join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // 比較動画に出すクレジット（「AI 生成」の表示と使ったモデル）
+  const comparedKey = compared.map((r) => r.id).join(',');
+  useEffect(() => {
+    if (!comparedKey) return setCredit('');
+    let alive = true;
+    api.credits(comparedKey.split(',')).then((c) => alive && setCredit(c.line)).catch(() => alive && setCredit(''));
+    return () => {
+      alive = false;
+    };
+  }, [comparedKey]);
+
   const toggle = (id: string) =>
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
@@ -115,7 +127,7 @@ export default function App() {
           <QueuePanel jobs={jobList} health={health} connected={connected} />
         </aside>
         <section className="center">
-          <Viewer clips={clips} modelUrl={globalModel} onModelChange={setGlobalModel} title={title} exportRequest={exportRequest} />
+          <Viewer clips={clips} modelUrl={globalModel} onModelChange={setGlobalModel} title={title} credit={credit} exportRequest={exportRequest} />
           {compared.length > 0 && (
             <div className="compare-bar">
               <span className="muted">{compared.length} 件を比較中</span>

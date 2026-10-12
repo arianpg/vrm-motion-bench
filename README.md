@@ -1,6 +1,7 @@
 # VRM Motion Bench
 
 ローカルのAIモーション生成モデルの出力を VRM に適用して比較する検証ツール。仕様は [docs/spec.md](docs/spec.md)。
+使うモデル・データのライセンスと、生成したモーションを公開するときの条件は [docs/licenses.md](docs/licenses.md)。
 
 ## 構成
 

@@ -10,7 +10,9 @@ import json
 from pathlib import Path
 from typing import Any
 
+from .credits import build_credits
 from .db import Database, now_iso
+from .manifest import Manifest
 
 PLACEHOLDER = '<script id="vmb-data" type="application/json">__VMB_REPORT_DATA__</script>'
 COLORS = ["#5b9cf5", "#ef6b6b", "#4cc38a", "#e5b450", "#b07cf5", "#4cc3c3", "#f58fc8", "#a0a8b5"]
@@ -21,7 +23,12 @@ class ReportError(RuntimeError):
 
 
 def build_report(
-    db: Database, results_dir: Path, stickman: Path, template: Path, result_ids: list[str]
+    db: Database,
+    results_dir: Path,
+    stickman: Path,
+    template: Path,
+    result_ids: list[str],
+    manifests: dict[str, Manifest] | None = None,
 ) -> tuple[str, str]:
     """(HTML, ファイル名) を返す。"""
     if not template.exists():
@@ -31,6 +38,7 @@ def build_report(
         raise ReportError("テンプレートにデータの差し込み位置がない")
 
     results: list[dict[str, Any]] = []
+    sources: list[dict[str, Any]] = []  # クレジット用（ファイル一覧を含む元の結果）
     for rid in result_ids:
         r = db.get_result(rid)
         if r is None or r["status"] != "done" or "vrma" not in r["files"]:
@@ -38,6 +46,7 @@ def build_report(
         vrma = (results_dir / rid / r["files"]["vrma"]).read_bytes()
         contacts_name = r["files"].get("contacts")
         contacts = json.loads((results_dir / rid / contacts_name).read_text()) if contacts_name else None
+        sources.append(r)
         i = len(results)
         results.append(
             {
@@ -60,6 +69,7 @@ def build_report(
         "created_at": now_iso(),
         "stickman": base64.b64encode(stickman.read_bytes()).decode("ascii"),
         "results": results,
+        "credits": build_credits(manifests or {}, sources),
     }
     # </script> で JSON が途切れないようにする
     payload = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")

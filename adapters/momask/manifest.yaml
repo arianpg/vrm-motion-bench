@@ -68,4 +68,10 @@ resources:
   container_image: vmb-adapter-momask
   timeouts: {}
 
+# 比較動画・レポートに出すクレジット（docs/licenses.md）
+credit:
+  text: MoMask
+  noncommercial: true
+  notes: ["学習データ（HumanML3D、AMASS 由来）は非商用の研究用途に限られる"]
+
 license_note: "MoMask: コードは MIT。学習データは HumanML3D（AMASS 由来）。個人の検証用途で利用する。"

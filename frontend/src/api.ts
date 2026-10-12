@@ -93,6 +93,15 @@ export interface Draft {
   created_at: string;
 }
 
+/** 比較動画・レポートに出すクレジット（docs/licenses.md） */
+export interface Credits {
+  notice: string;
+  /** MP4 の下部に出す 1 行 */
+  line: string;
+  noncommercial: boolean;
+  items: { adapter_id: string; name: string; text: string; noncommercial: boolean; notes: string[]; license_note: string }[];
+}
+
 export interface LlmModel {
   id: string;
   name: string;
@@ -155,6 +164,7 @@ export const api = {
   groups: (limit = 50) => request<Omit<Group, 'results' | 'drafts'>[]>(`/api/groups?limit=${limit}`),
   createDrafts: (body: { request_text: string; adapter_ids: string[]; llm_model?: string }) =>
     request<{ group_id: string; drafts: Draft[] }>('/api/drafts', { method: 'POST', body: JSON.stringify(body) }),
+  credits: (ids: string[]) => request<Credits>(`/api/credits?ids=${ids.join(',')}`),
   /** 複数の生成を 1 つの比較グループとしてまとめて投入する（seed 違いの比較など） */
   createGroup: (body: { request_text: string; items: { adapter_id: string; inputs: Record<string, unknown>; params: Record<string, unknown> }[] }) =>
     request<{ group_id: string; items: { result_id: string; job_id: string }[] }>('/api/groups', { method: 'POST', body: JSON.stringify(body) }),

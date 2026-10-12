@@ -61,6 +61,14 @@ class VideoSourceSpec(BaseModel):
     params: dict[str, Any] = Field(default_factory=dict)  # 動画生成に渡す追加のパラメータ
 
 
+class CreditSpec(BaseModel):
+    """比較動画・レポートに出すクレジット（docs/licenses.md「出力を公開するときの条件」）。"""
+
+    text: str  # 表示名（例: "EDGE (Stanford) + OpenAI Jukebox"）
+    noncommercial: bool = False  # 出力を商用に使えない（モデル・学習データ・ボディモデルのライセンス）
+    notes: list[str] = Field(default_factory=list)  # 公開時の条件（レポートに出す）
+
+
 class ResourceSpec(BaseModel):
     vram_gb: float = 0
     load_time_s: float | None = None
@@ -85,6 +93,7 @@ class Manifest(BaseModel):
     resources: ResourceSpec
     video_source: VideoSourceSpec | None = None
     license_note: str = ""
+    credit: CreditSpec | None = None
 
     # 読み込み元（API には出さない）
     directory: Path = Field(exclude=True)

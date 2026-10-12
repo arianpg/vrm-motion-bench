@@ -68,4 +68,8 @@ resources:
   container_image: vmb-adapter-kimodo
   timeouts: {}
 
+# 比較動画・レポートに出すクレジット（docs/licenses.md）
+credit:
+  text: Kimodo (NVIDIA)
+
 license_note: "Kimodo 重み: NVIDIA Open Model License。テキストエンコーダ: Meta Llama 3 Community License。個人の検証用途で利用する。"

@@ -11,6 +11,7 @@ export function Viewer({
   onModelChange,
   defaultModelUrl = STICKMAN_URL,
   title = '',
+  credit = '',
   exportRequest = 0,
 }: {
   clips: ClipItem[];
@@ -20,6 +21,8 @@ export function Viewer({
   defaultModelUrl?: string;
   /** 比較動画の上部に出すお題 */
   title?: string;
+  /** 比較動画の下部に出すクレジット（「AI 生成」の表示と使ったモデル） */
+  credit?: string;
   /** 増えるたびに比較動画（MP4）の書き出し画面を開く（ボタンは比較バーにある。サーバーでエンコードするため、アプリだけ） */
   exportRequest?: number;
 }) {
@@ -122,6 +125,7 @@ export function Viewer({
         stage: s,
         clips,
         title,
+        credit,
         layout: multi ? exportLayout : 'overlay',
         size: exportSize,
         audioResultId: exportAudio ? (clips.find((c) => c.audioUrl)?.id ?? null) : null,

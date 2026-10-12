@@ -56,7 +56,7 @@ assets:
     kind: auto
     path: ardy/hf
     how_to: "初回起動時に Hugging Face（nvidia/ARDY-Core-RP-20FPS-Horizon40）から自動でダウンロードされる"
-    license: NVIDIA Open Model License
+    license: NVIDIA Open Model Agreement
   - id: llama3-8b
     kind: hf_gated
     repo: meta-llama/Meta-Llama-3-8B-Instruct
@@ -70,4 +70,8 @@ resources:
   container_image: vmb-adapter-ardy
   timeouts: {}
 
-license_note: "ARDY 重み: NVIDIA Open Model License。コード: Apache 2.0。テキストエンコーダ: Meta Llama 3 Community License。個人の検証用途で利用する。"
+# 比較動画・レポートに出すクレジット（docs/licenses.md）
+credit:
+  text: ARDY (NVIDIA)
+
+license_note: "ARDY 重み: NVIDIA Open Model Agreement。コード: Apache 2.0。テキストエンコーダ: Meta Llama 3 Community License。個人の検証用途で利用する。"

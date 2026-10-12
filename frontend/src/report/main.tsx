@@ -1,7 +1,7 @@
 // レポート HTML（ネット接続なしで開ける比較ビュー）。データは <script id="vmb-data"> に埋め込まれる
 import { StrictMode, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import type { Result } from '../api';
+import type { Credits, Result } from '../api';
 import { CompareTable } from '../components/CompareTable';
 import { Viewer } from '../components/Viewer';
 import '../styles.css';
@@ -20,6 +20,35 @@ export interface ReportData {
   created_at: string;
   stickman: string; // base64
   results: ReportItem[];
+  credits?: Credits;
+}
+
+/** 使ったモデルのクレジットと、出力を公開するときの条件（docs/licenses.md） */
+function CreditsSection({ credits }: { credits: Credits }) {
+  return (
+    <details className="credits">
+      {/* 閉じていても「AI 生成」の表示と使ったモデルは常に見える */}
+      <summary>
+        <strong>クレジット</strong> {credits.line}
+      </summary>
+      <p>{credits.notice}です。使ったモデルとライセンスは次のとおりです。</p>
+      <ul>
+        {credits.items.map((c) => (
+          <li key={c.adapter_id}>
+            <strong>{c.text}</strong>
+            {c.noncommercial && <span className="badge-nc">非商用</span>}
+            {c.license_note && <div className="muted small">{c.license_note}</div>}
+            {c.notes.map((n) => (
+              <div key={n} className="small">・{n}</div>
+            ))}
+          </li>
+        ))}
+      </ul>
+      {credits.noncommercial && (
+        <p className="small">「非商用」のモデルの出力は、商用の目的（収益化した投稿や製品・サービスの宣伝を含む）に使えません。</p>
+      )}
+    </details>
+  );
 }
 
 function blobUrl(base64: string, type: string): string {
@@ -74,6 +103,7 @@ function ReportApp({ data }: { data: ReportData }) {
           onRemove={(id) => setVisible((prev) => prev.filter((x) => x !== id))}
           vrmaUrl={(r) => vrmaUrls[data.results.findIndex((x) => x.id === r.id)] ?? null}
         />
+        {data.credits && data.credits.items.length > 0 && <CreditsSection credits={data.credits} />}
         {visible.length < data.results.length && (
           <div className="restore">
             <button className="small" onClick={() => setVisible(data.results.map((r) => r.id))}>すべて表示に戻す</button>

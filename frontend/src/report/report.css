@@ -1,3 +1,9 @@
 .report .center { flex: 1; min-height: 0; }
 .report header .right { margin-left: auto; }
 .report .restore { padding: 6px 12px; background: var(--panel); }
+.credits { flex: none; max-height: 40vh; overflow: auto; padding: 8px 16px; border-top: 1px solid var(--border); background: var(--panel); font-size: 13px; }
+.credits summary { cursor: pointer; color: var(--muted); }
+.credits summary strong { color: var(--text); margin-right: 6px; }
+.credits p { margin: 4px 0; }
+.credits ul { margin: 6px 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+.credits .badge-nc { margin-left: 8px; padding: 0 6px; border: 1px solid #e5b450; border-radius: 4px; color: #e5b450; font-size: 11px; }

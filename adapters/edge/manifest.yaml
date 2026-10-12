@@ -52,4 +52,12 @@ resources:
   container_image: vmb-adapter-edge
   timeouts: {}
 
-license_note: "EDGE: MIT。学習データは AIST++（非商用の研究用途）。音楽の特徴抽出の Jukebox の重みは Noncommercial Use License。個人の検証用途で利用する。"
+# 比較動画・レポートに出すクレジット（docs/licenses.md）
+credit:
+  text: EDGE (Stanford) + OpenAI Jukebox
+  noncommercial: true
+  notes:
+    - "Jukebox で作った内容は商用に使えず、Jukebox を使ったことを明示するよう求められている"
+    - "骨格は SMPL 由来（SMPL は非商用の用途に限られる）"
+
+license_note: "EDGE: MIT。学習データは AIST++（注釈は CC BY 4.0）。音楽の特徴抽出の Jukebox の重みは Noncommercial Use License。個人の検証用途で利用する。"

@@ -15,6 +15,8 @@ export interface ExportOptions {
   clips: ClipItem[];
   /** お題（依頼文やプロンプト）。上部に表示する */
   title: string;
+  /** クレジット（「AI 生成」の表示と使ったモデル）。下部に表示する */
+  credit: string;
   layout: Layout;
   size: ExportSize;
   /** 入れる音声の結果 ID（音声を入れないときは null） */
@@ -95,8 +97,13 @@ export async function exportCompareVideo(opts: ExportOptions): Promise<string> {
   const titleLines = opts.title ? wrap(ctx, opts.title, width - pad * 2, 2) : [];
   const overlay = layout === 'overlay' || clips.length === 1;
   const header = pad + titleLines.length * titleSize * 1.3 + (overlay ? labelSize * 1.8 : 0) + pad * 0.6;
-  const viewHeight = Math.round((height - header) / 2) * 2; // 偶数にそろえる
-  const top = height - viewHeight;
+  // 下部: クレジット（最大 2 行）。公開時に AI 生成であることとモデルを示すため、常に入れる
+  const creditSize = 22 * unit;
+  ctx.font = `${creditSize}px ${font}`;
+  const creditLines = opts.credit ? wrap(ctx, opts.credit, width - pad * 2, 2) : [];
+  const footer = creditLines.length ? creditLines.length * creditSize * 1.35 + pad * 0.8 : 0;
+  const viewHeight = Math.round((height - header - footer) / 2) * 2; // 偶数にそろえる
+  const top = Math.round(header);
   const viewports = stage.viewports(width, viewHeight, layout);
 
   const session = await post<{ id: string }>(
@@ -115,6 +122,12 @@ export async function exportCompareVideo(opts: ExportOptions): Promise<string> {
         ctx.fillStyle = BACKGROUND;
         ctx.fillRect(0, 0, width, height);
         ctx.drawImage(view, 0, top);
+        ctx.textBaseline = 'middle';
+        ctx.font = `${creditSize}px ${font}`;
+        ctx.fillStyle = '#a9afb8';
+        creditLines.forEach((line, i) =>
+          ctx.fillText(line, pad, top + viewHeight + pad * 0.4 + creditSize * (0.6 + i * 1.35)),
+        );
         ctx.textBaseline = 'middle';
         ctx.font = `600 ${titleSize}px ${font}`;
         ctx.fillStyle = '#f2f3f5';

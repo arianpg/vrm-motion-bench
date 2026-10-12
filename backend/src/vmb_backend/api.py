@@ -13,6 +13,7 @@ from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from .containers import ContainerError
+from .credits import build_credits
 from .exports import ExportError, ExportManager
 from .manifest import check_assets
 from .report import ReportError, build_report
@@ -225,6 +226,12 @@ def build_router(app_state) -> APIRouter:
             raise HTTPException(422, "invalid download name")
         return FileResponse(path, media_type="video/mp4", filename=download)
 
+    @r.get("/credits")
+    def credits(ids: str) -> dict[str, Any]:
+        """ids: カンマ区切りの結果 ID。比較動画（MP4）に出すクレジット。"""
+        results = [r for r in (s.db.get_result(i) for i in ids.split(",") if i) if r is not None]
+        return build_credits(s.manifests, results)
+
     @r.get("/report")
     def report(ids: str) -> HTMLResponse:
         """ids: カンマ区切りの結果 ID。比較ビューと同じ順で並べる。"""
@@ -235,6 +242,7 @@ def build_router(app_state) -> APIRouter:
                 s.settings.assets_dir / "stickman/stickman.vrm",
                 s.settings.report_template,
                 [i for i in ids.split(",") if i],
+                s.manifests,
             )
         except ReportError as e:
             raise HTTPException(409, str(e)) from None

@@ -80,4 +80,8 @@ resources:
   container_image: vmb-adapter-gemx
   timeouts: {generate: 900}
 
+# 比較動画・レポートに出すクレジット（docs/licenses.md）
+credit:
+  text: GEM-X (NVIDIA) + SAM 3D Body (Meta)
+
 license_note: "GEM-X: コードは Apache 2.0、モデルは NVIDIA Open Model License。SAM 3D Body は SAM License。動画生成は HunyuanVideo 1.5（Tencent Hunyuan Community License）。個人の検証用途で利用する。"

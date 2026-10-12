@@ -21,7 +21,12 @@ def test_build_report_embeds_data(tmp_path):
     template = tmp_path / "report.html"
     template.write_text(f"<html><body>{PLACEHOLDER}<script>if (x === '__VMB_REPORT_DATA__') {{}}</script></body></html>")
 
-    html, name = build_report(db, tmp_path / "results", stickman, template, [rid])
+    from pathlib import Path
+
+    from vmb_backend.manifest import load_manifests
+
+    manifests = load_manifests(Path(__file__).resolve().parents[2] / "adapters")
+    html, name = build_report(db, tmp_path / "results", stickman, template, [rid], manifests)
     assert name == f"vmb_report_{gid}.html"
     # 文字列比較用の目印（JS 側）は残り、データ用の script だけが置き換わる
     assert html.count("__VMB_REPORT_DATA__") == 1
@@ -30,6 +35,7 @@ def test_build_report_embeds_data(tmp_path):
     data = json.loads(payload.replace("<\\/", "</"))
     assert data["request_text"] == "手を振る"
     assert base64.b64decode(data["results"][0]["vrma"]) == b"vrma-bytes"
+    assert data["credits"]["line"] == "AI 生成のモーション · Kimodo (NVIDIA)"
 
 
 def test_build_report_rejects_unfinished(tmp_path):
