@@ -125,9 +125,18 @@ button.small { padding: 2px 8px; font-size: 12px; }
 .compare-bar { display: flex; align-items: center; gap: 12px; padding: 6px 12px; background: var(--panel); border-top: 1px solid var(--border); }
 a.button { margin-left: auto; background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; color: var(--text); text-decoration: none; font-size: 13px; }
 a.button:hover { border-color: var(--accent); }
+.compare-actions { margin-left: auto; display: flex; gap: 8px; }
+.compare-actions a.button { margin-left: 0; }
+.compare-actions button { font-size: 13px; padding: 4px 10px; }
 .search { margin-bottom: 10px; }
 .links { display: flex; gap: 10px; font-size: 12px; }
 .links a, .compare-table a { color: var(--accent); }
 .state-video { color: var(--warn); }
 .form .variants { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 12px; color: var(--muted); }
 .form .variants input { width: 64px; }
+.export-dialog { position: absolute; top: 12px; right: 12px; z-index: 5; width: 340px; display: flex; flex-direction: column; gap: 10px; padding: 14px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4); }
+.export-dialog h3 { margin: 0; font-size: 14px; }
+.export-dialog p { margin: 0; }
+.export-progress { display: flex; align-items: center; gap: 8px; }
+.export-progress progress { flex: 1; }
+.export-actions { display: flex; gap: 8px; justify-content: flex-end; }

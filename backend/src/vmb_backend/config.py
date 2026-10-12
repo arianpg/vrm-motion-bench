@@ -68,6 +68,10 @@ class Settings:
     def results_dir(self) -> Path:
         return self.data_dir / "results"
 
+    @property
+    def exports_dir(self) -> Path:
+        return self.data_dir / "exports"
+
 
 def load_settings() -> Settings:
     settings = Settings()

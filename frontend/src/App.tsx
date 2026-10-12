@@ -23,6 +23,7 @@ export default function App() {
   const [globalModel, setGlobalModel] = useState<string | null>(null);
   const [models, setModels] = useState<Record<string, string | null>>({});
   const [error, setError] = useState<string | null>(null);
+  const [exportRequest, setExportRequest] = useState(0);
 
   useEffect(() => {
     // 動画生成のアダプター（kind: video）は、ほかのアダプターの前段でだけ使う
@@ -79,6 +80,17 @@ export default function App() {
     [compared.map((r) => r.id).join(','), models], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
+  // 比較動画の上部に出すお題: 依頼文がすべて同じならそれ、次にプロンプトがすべて同じならそれ
+  const title = useMemo(() => {
+    const same = (values: (string | null | undefined)[]) =>
+      values.length > 0 && values.every((v) => v && v === values[0]) ? String(values[0]) : '';
+    return (
+      same(compared.map((r) => r.request_text)) ||
+      same(compared.map((r) => r.final_prompt ?? (r.inputs.text as string | undefined))) ||
+      (compared.length > 1 ? `${compared.length} 件のモーションの比較` : '')
+    );
+  }, [compared.map((r) => r.id).join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const toggle = (id: string) =>
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
@@ -103,13 +115,18 @@ export default function App() {
           <QueuePanel jobs={jobList} health={health} connected={connected} />
         </aside>
         <section className="center">
-          <Viewer clips={clips} modelUrl={globalModel} onModelChange={setGlobalModel} />
+          <Viewer clips={clips} modelUrl={globalModel} onModelChange={setGlobalModel} title={title} exportRequest={exportRequest} />
           {compared.length > 0 && (
             <div className="compare-bar">
               <span className="muted">{compared.length} 件を比較中</span>
-              <a className="button" href={`/api/report?ids=${compared.map((r) => r.id).join(',')}`} download>
-                レポートHTMLを書き出す
-              </a>
+              <div className="compare-actions">
+                <a className="button" href={`/api/report?ids=${compared.map((r) => r.id).join(',')}`} download>
+                  レポートHTMLを書き出す
+                </a>
+                <button onClick={() => setExportRequest((n) => n + 1)} title="比較動画を MP4 で書き出す（SNS への添付向け）">
+                  MP4を書き出す
+                </button>
+              </div>
             </div>
           )}
           <CompareTable

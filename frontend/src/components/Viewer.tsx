@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { STICKMAN_URL } from '../api';
+import { EXPORT_MAX_SECONDS, EXPORT_SIZES, exportCompareVideo, type ExportSize } from '../viewer/exportVideo';
 import { VrmStage, type ClipItem, type Layout } from '../viewer/stage';
 
 const SPEEDS = [0.25, 0.5, 1, 2];
@@ -9,12 +10,18 @@ export function Viewer({
   modelUrl,
   onModelChange,
   defaultModelUrl = STICKMAN_URL,
+  title = '',
+  exportRequest = 0,
 }: {
   clips: ClipItem[];
   modelUrl?: string | null;
   onModelChange?: (url: string | null) => void;
   /** 既定の VRM（アプリでは API の棒人間、レポートでは埋め込みの棒人間） */
   defaultModelUrl?: string;
+  /** 比較動画の上部に出すお題 */
+  title?: string;
+  /** 増えるたびに比較動画（MP4）の書き出し画面を開く（ボタンは比較バーにある。サーバーでエンコードするため、アプリだけ） */
+  exportRequest?: number;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const stage = useRef<VrmStage>();
@@ -30,6 +37,13 @@ export function Viewer({
   const [audioBlocked, setAudioBlocked] = useState(false);
   const [layout, setLayout] = useState<Layout>('side');
   const [inPlace, setInPlace] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportLayout, setExportLayout] = useState<Layout>('side');
+  const [exportSize, setExportSize] = useState<ExportSize>('landscape');
+  const [exportAudio, setExportAudio] = useState(true);
+  const [exportProgress, setExportProgress] = useState<{ done: number; total: number } | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const exportAbort = useRef<AbortController | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [viewports, setViewports] = useState<ReturnType<VrmStage['viewports']>>([]);
@@ -86,6 +100,46 @@ export function Viewer({
 
   const multi = clips.length > 1;
 
+  useEffect(() => {
+    if (exportRequest === 0) return;
+    setExportLayout(layout);
+    setExportError(null);
+    setExportOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exportRequest]);
+
+  const startExport = async () => {
+    const s = stage.current;
+    if (!s) return;
+    const abort = new AbortController();
+    exportAbort.current = abort;
+    setExportError(null);
+    setExportProgress({ done: 0, total: 1 });
+    s.playing = false;
+    setPlaying(false);
+    try {
+      const url = await exportCompareVideo({
+        stage: s,
+        clips,
+        title,
+        layout: multi ? exportLayout : 'overlay',
+        size: exportSize,
+        audioResultId: exportAudio ? (clips.find((c) => c.audioUrl)?.id ?? null) : null,
+        onProgress: (done, total) => setExportProgress({ done, total }),
+        signal: abort.signal,
+      });
+      const a = document.createElement('a');
+      a.href = url;
+      a.click();
+      setExportOpen(false);
+    } catch (e) {
+      if ((e as Error).name !== 'AbortError') setExportError((e as Error).message);
+    } finally {
+      exportAbort.current = null;
+      setExportProgress(null);
+    }
+  };
+
   return (
     <div className="viewer">
       <div
@@ -100,6 +154,50 @@ export function Viewer({
         {clips.length === 0 && <div className="viewer-empty">結果を選ぶとここで再生します</div>}
         {loading && <div className="viewer-empty">読み込み中…</div>}
         {error && <div className="viewer-error">{error}</div>}
+        {exportOpen && (
+          <div className="export-dialog">
+            <h3>比較動画（MP4）の書き出し</h3>
+            <p className="muted small">
+              お題とモーションの表示部分を 30fps で書き出します（一番長いクリップ 1 周、{EXPORT_MAX_SECONDS} 秒まで）。カメラの向きは今の表示と同じです。
+            </p>
+            {multi && (
+              <div className="segmented" role="group" aria-label="表示形式">
+                <button className={exportLayout === 'side' ? 'on' : ''} onClick={() => setExportLayout('side')} disabled={!!exportProgress}>横並び</button>
+                <button className={exportLayout === 'overlay' ? 'on' : ''} onClick={() => setExportLayout('overlay')} disabled={!!exportProgress}>重ね合わせ</button>
+              </div>
+            )}
+            <div className="segmented" role="group" aria-label="解像度">
+              {(Object.keys(EXPORT_SIZES) as ExportSize[]).map((k) => (
+                <button key={k} className={exportSize === k ? 'on' : ''} onClick={() => setExportSize(k)} disabled={!!exportProgress}>
+                  {EXPORT_SIZES[k].label}
+                </button>
+              ))}
+            </div>
+            {hasAudio && (
+              <label className="toggle">
+                <input type="checkbox" checked={exportAudio} onChange={(e) => setExportAudio(e.target.checked)} disabled={!!exportProgress} />
+                入力音声を入れる
+              </label>
+            )}
+            {exportProgress && (
+              <div className="export-progress">
+                <progress max={exportProgress.total} value={exportProgress.done} />
+                <span className="small">{exportProgress.done} / {exportProgress.total} コマ</span>
+              </div>
+            )}
+            {exportError && <div className="error small">{exportError}</div>}
+            <div className="export-actions">
+              {exportProgress ? (
+                <button onClick={() => exportAbort.current?.abort()}>中止</button>
+              ) : (
+                <>
+                  <button className="primary" onClick={startExport}>書き出す</button>
+                  <button onClick={() => setExportOpen(false)}>閉じる</button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
         {multi && layout === 'side' &&
           viewports.map((v, i) => clips[i] && (
             <div

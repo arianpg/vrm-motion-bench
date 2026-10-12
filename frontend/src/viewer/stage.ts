@@ -77,6 +77,28 @@ async function loadVrma(url: string, inPlace: boolean): Promise<VRMAnimation> {
 }
 
 const FOCUS_HEIGHT = 0.9;
+
+/** 横並びの列数。1 体あたりの表示（縦長の人物を想定し、幅：高さ = 3：4 で比べる）が最も大きくなる列数を選ぶ */
+function gridFor(n: number, w: number, h: number): { cols: number; rows: number } {
+  let best = { cols: n, rows: 1, size: -1 };
+  for (let cols = 1; cols <= n; cols++) {
+    const rows = Math.ceil(n / cols);
+    const size = Math.min(w / cols, ((h / rows) * 3) / 4);
+    if (size > best.size + 1e-6) best = { cols, rows, size };
+  }
+  return best;
+}
+
+export interface ExportFrameOptions {
+  width: number;
+  height: number;
+  layout: Layout;
+  fps: number;
+  frames: number;
+  /** 描いたコマ（renderer の canvas）を受け取る。返り値の Promise を待ってから次のコマを描く */
+  onFrame: (canvas: HTMLCanvasElement, index: number) => Promise<void>;
+  signal?: AbortSignal;
+}
 const markerGeometry = new THREE.RingGeometry(0.05, 0.08, 24).rotateX(-Math.PI / 2);
 
 async function loadContacts(url: string | null | undefined): Promise<Contacts | null> {
@@ -103,6 +125,8 @@ export class VrmStage {
   private resizeObserver: ResizeObserver;
   private loadToken = 0;
   private overlayFollow = new THREE.Vector3();
+  /** 書き出し中は通常の再生・描画を止める */
+  private exporting = false;
   private audio: HTMLAudioElement | null = null;
 
   time = 0;
@@ -365,6 +389,7 @@ export class VrmStage {
 
   private loop = () => {
     this.raf = requestAnimationFrame(this.loop);
+    if (this.exporting) return;
     const now = performance.now();
     const dt = (now - this.last) / 1000;
     this.last = now;
@@ -388,8 +413,7 @@ export class VrmStage {
     this.render();
   };
 
-  private render() {
-    const { clientWidth: w, clientHeight: h } = this.container;
+  private render(w = this.container.clientWidth, h = this.container.clientHeight) {
     if (w === 0 || h === 0) return;
     const base = this.camera.position.clone();
     const target = this.controls.target.clone();
@@ -413,9 +437,7 @@ export class VrmStage {
       this.renderer.setScissor(0, 0, w, h);
       drawFrom(this.actors.length ? this.overlayFollow : null);
     } else {
-      const n = this.actors.length;
-      const cols = n <= 3 ? n : Math.ceil(n / 2);
-      const rows = Math.ceil(n / cols);
+      const { cols, rows } = gridFor(this.actors.length, w, h);
       const cw = w / cols;
       const ch = h / rows;
       this.camera.aspect = cw / ch;
@@ -434,18 +456,60 @@ export class VrmStage {
     this.camera.lookAt(target);
   }
 
-  /** 横並び時の各ビューポートの位置（0〜1、左上原点）。ラベル表示用 */
-  viewports(): { left: number; top: number; width: number; height: number }[] {
+  /** 横並び時の各ビューポートの位置（0〜1、左上原点）。ラベル表示用。w・h を省くと画面の大きさを使う */
+  viewports(
+    w = this.container.clientWidth,
+    h = this.container.clientHeight,
+    layout: Layout = this.layout,
+  ): { left: number; top: number; width: number; height: number }[] {
     const n = this.actors.length;
-    if (!(this.layout === 'side' && n > 1)) return [{ left: 0, top: 0, width: 1, height: 1 }];
-    const cols = n <= 3 ? n : Math.ceil(n / 2);
-    const rows = Math.ceil(n / cols);
+    if (!(layout === 'side' && n > 1)) return [{ left: 0, top: 0, width: 1, height: 1 }];
+    const { cols, rows } = gridFor(n, w, h);
     return this.actors.map((_, i) => ({
       left: (i % cols) / cols,
       top: Math.floor(i / cols) / rows,
       width: 1 / cols,
       height: 1 / rows,
     }));
+  }
+
+  /**
+   * 比較動画の書き出し用に、指定の大きさ・表示形式で 0 秒から 1 コマずつ描く（実時間ではなく fps ごとの時刻）。
+   * カメラの向きは画面と同じ。描き終えたら（中断しても）画面の表示に戻す。
+   */
+  async exportFrames(opts: ExportFrameOptions): Promise<void> {
+    const { width, height, fps, frames, onFrame, signal } = opts;
+    const saved = { layout: this.layout, time: this.time, pixelRatio: this.renderer.getPixelRatio() };
+    this.exporting = true;
+    this.audio?.pause();
+    try {
+      this.layout = opts.layout;
+      this.applyAppearance();
+      this.renderer.setPixelRatio(1);
+      this.renderer.setSize(width, height, false);
+      this.time = 0;
+      this.apply();
+      this.snapFollow();
+      for (let i = 0; i < frames; i++) {
+        if (signal?.aborted) throw new DOMException('書き出しを中止しました', 'AbortError');
+        this.time = Math.min(i / fps, this.duration);
+        this.apply();
+        // 画面の追従（毎描画で 1 割ずつ近づける）は 60fps 前提なので、30fps では 2 回分進める
+        for (let k = 0; k < Math.max(1, Math.round(60 / fps)); k++) this.updateFollow();
+        this.render(width, height);
+        await onFrame(this.renderer.domElement, i);
+      }
+    } finally {
+      this.layout = saved.layout;
+      this.applyAppearance();
+      this.renderer.setPixelRatio(saved.pixelRatio);
+      this.resize();
+      this.time = saved.time;
+      this.apply();
+      this.snapFollow();
+      this.exporting = false;
+      this.last = performance.now();
+    }
   }
 
   private resize() {

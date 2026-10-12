@@ -13,6 +13,7 @@ from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from .containers import ContainerError
+from .exports import ExportError, ExportManager
 from .manifest import check_assets
 from .report import ReportError, build_report
 from .uploads import UploadError, save_upload
@@ -54,9 +55,17 @@ class ConfirmBody(BaseModel):
     items: list[ConfirmItem]
 
 
+class ExportBody(BaseModel):
+    width: int
+    height: int
+    frames: int
+    audio_result_id: str | None = None  # この結果の入力音声を入れる
+
+
 def build_router(app_state) -> APIRouter:
     r = APIRouter(prefix="/api")
     s = app_state
+    exports = ExportManager(s.settings.exports_dir)
 
     def submit(item: GroupItem | GenerateBody, group_id: str | None, request_text: str) -> dict[str, str]:
         try:
@@ -157,6 +166,64 @@ def build_router(app_state) -> APIRouter:
         if group is None or not group.get("preview"):
             raise HTTPException(404, "preview not found")
         return FileResponse(s.settings.data_dir / "groups" / gid / group["preview"])
+
+    # ------------------------------------------------------------ 比較動画（MP4）
+
+    @r.post("/exports")
+    def start_export(body: ExportBody) -> dict[str, Any]:
+        audio = None
+        if body.audio_result_id:
+            result = s.db.get_result(body.audio_result_id)
+            name = (result or {}).get("files", {}).get("audio")
+            if not name:
+                raise HTTPException(404, "audio not found")
+            audio = s.settings.results_dir / body.audio_result_id / name
+        try:
+            session = exports.start(width=body.width, height=body.height, frames=body.frames, audio=audio)
+        except ExportError as e:
+            raise HTTPException(422, str(e)) from None
+        return {"id": session.id, "frames": session.frames}
+
+    @r.post("/exports/{sid}/frames")
+    async def add_export_frame(sid: str, request: Request) -> dict[str, Any]:
+        """本文は JPEG 1 枚。順番どおりに送る。"""
+        jpeg = await request.body()
+        try:
+            received = await asyncio.to_thread(exports.add_frame, sid, jpeg)
+        except KeyError as e:
+            raise HTTPException(404, str(e)) from None
+        except ExportError as e:
+            raise HTTPException(422, str(e)) from None
+        return {"received": received}
+
+    @r.post("/exports/{sid}/finish")
+    async def finish_export(sid: str) -> dict[str, Any]:
+        try:
+            session = await asyncio.to_thread(exports.finish, sid)
+        except KeyError as e:
+            raise HTTPException(404, str(e)) from None
+        except ExportError as e:
+            raise HTTPException(500, str(e)) from None
+        return {"id": session.id, "size": session.path.stat().st_size}
+
+    @r.delete("/exports/{sid}")
+    def cancel_export(sid: str) -> dict[str, Any]:
+        try:
+            exports.cancel(sid)
+        except KeyError as e:
+            raise HTTPException(404, str(e)) from None
+        return {"id": sid}
+
+    @r.get("/exports/{sid}/file")
+    def export_file(sid: str, download: str = "vmb_compare.mp4") -> FileResponse:
+        if not re.fullmatch(r"[0-9a-f]{12}", sid):
+            raise HTTPException(404, "export not found")
+        path = s.settings.exports_dir / f"{sid}.mp4"
+        if not path.exists():
+            raise HTTPException(404, "export not found")
+        if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,150}\.mp4", download):
+            raise HTTPException(422, "invalid download name")
+        return FileResponse(path, media_type="video/mp4", filename=download)
 
     @r.get("/report")
     def report(ids: str) -> HTMLResponse:
