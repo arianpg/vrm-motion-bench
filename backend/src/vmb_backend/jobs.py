@@ -164,8 +164,17 @@ class JobQueue:
     def _pick(self, resource: Resource) -> Job | None:
         """呼び出し側で self._cond を保持していること。"""
         candidates: list[Job] = []
+        # 同じモデルのジョブは同時に流さない（CPU のワーカーは複数あるが、アダプターのコンテナは 1 件ずつしか処理できない）
+        # 実行中のジョブは、コンテナの起動中などに running 以外の状態（loading など）にもなる
+        busy_models = {
+            j.model_key
+            for j in self.jobs.values()
+            if j.status not in ("queued", "done", "failed") and j.resource == resource and j.model_key
+        }
         for job in sorted(self.jobs.values(), key=lambda j: j.seq):
             if job.resource != resource or job.status != "queued":
+                continue
+            if job.model_key is not None and job.model_key in busy_models:
                 continue
             state = self._deps_state(job)
             if state == "failed":

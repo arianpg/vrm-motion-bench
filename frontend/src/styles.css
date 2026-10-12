@@ -129,3 +129,5 @@ a.button:hover { border-color: var(--accent); }
 .links { display: flex; gap: 10px; font-size: 12px; }
 .links a, .compare-table a { color: var(--accent); }
 .state-video { color: var(--warn); }
+.form .variants { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 12px; color: var(--muted); }
+.form .variants input { width: 64px; }

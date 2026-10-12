@@ -155,6 +155,9 @@ export const api = {
   groups: (limit = 50) => request<Omit<Group, 'results' | 'drafts'>[]>(`/api/groups?limit=${limit}`),
   createDrafts: (body: { request_text: string; adapter_ids: string[]; llm_model?: string }) =>
     request<{ group_id: string; drafts: Draft[] }>('/api/drafts', { method: 'POST', body: JSON.stringify(body) }),
+  /** 複数の生成を 1 つの比較グループとしてまとめて投入する（seed 違いの比較など） */
+  createGroup: (body: { request_text: string; items: { adapter_id: string; inputs: Record<string, unknown>; params: Record<string, unknown> }[] }) =>
+    request<{ group_id: string; items: { result_id: string; job_id: string }[] }>('/api/groups', { method: 'POST', body: JSON.stringify(body) }),
   confirm: (groupId: string, items: ConfirmItem[]) =>
     request<{ group_id: string; items: { result_id: string; job_id: string }[] }>(`/api/groups/${groupId}/confirm`, {
       method: 'POST',
@@ -180,6 +183,13 @@ export const fileUrl = (result: Result, kind: string): string | null => {
   const name = result.files[kind];
   return name ? `/api/results/${result.id}/files/${encodeURIComponent(name)}` : null;
 };
+
+/** グループ内の並び順。作成時刻（秒単位）→ seed → ID。グループプレビューの色の順（pipeline.group_order）と揃える */
+export const groupOrder = (a: Result, b: Result): number =>
+  a.created_at.localeCompare(b.created_at) ||
+  (a.seed == null ? 1 : 0) - (b.seed == null ? 1 : 0) ||
+  (a.seed ?? 0) - (b.seed ?? 0) ||
+  a.id.localeCompare(b.id);
 
 /** VRMA を保存するときのファイル名（{アダプター}_seed{seed}_{結果ID}.vrma。seed がなければ省く） */
 export const vrmaFileName = (result: Result): string =>

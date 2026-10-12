@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { api, fileUrl, type Health, type Manifest } from './api';
+import { api, fileUrl, groupOrder, type Health, type Manifest } from './api';
 import { BatchPanel } from './components/BatchPanel';
 import { CompareTable } from './components/CompareTable';
 import { GenerateForm } from './components/GenerateForm';
@@ -50,7 +50,7 @@ export default function App() {
       setSelected(
         members
           .filter((r) => r.status === 'done')
-          .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id))
+          .sort(groupOrder)
           .map((r) => r.id),
       );
       setPendingGroup(null);
@@ -98,7 +98,7 @@ export default function App() {
             <BatchPanel adapters={adapters} drafts={drafts} onConfirmed={setPendingGroup} />
           </div>
           <div hidden={tab !== 'single'}>
-            <GenerateForm adapters={adapters} onSubmitted={() => undefined} />
+            <GenerateForm adapters={adapters} onSubmitted={() => undefined} onGroupSubmitted={setPendingGroup} />
           </div>
           <QueuePanel jobs={jobList} health={health} connected={connected} />
         </aside>

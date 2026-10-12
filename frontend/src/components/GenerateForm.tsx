@@ -1,11 +1,51 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api, type Manifest } from '../api';
 
+/** seed 違いの比較で 1 回に投入できる件数（比較の色の数） */
+export const MAX_SEED_VARIANTS = 8;
+const MAX_SEED = 2 ** 31 - 1;
+
+/**
+ * seed 欄と件数から、seed 違いの比較に使う seed の一覧を作る。1 件だけなら null（通常の単体生成）。
+ * - seed 欄にカンマ・空白区切りで複数並べると、その一覧を使う（件数は無視）
+ * - 件数が 2 以上なら、seed を指定したときはその値からの連番、空欄ならランダム
+ */
+export function seedVariants(raw: string, count: number): number[] | null {
+  const parts = raw.split(/[\s,、]+/).filter(Boolean);
+  if (parts.length > 1) {
+    const seeds = parts.map(Number);
+    if (seeds.some((s) => !Number.isInteger(s) || s < 0 || s > MAX_SEED)) throw new Error(`seed は 0〜${MAX_SEED} の整数にする`);
+    const unique = [...new Set(seeds)];
+    if (unique.length > MAX_SEED_VARIANTS) throw new Error(`seed は ${MAX_SEED_VARIANTS} 件までにする`);
+    return unique;
+  }
+  if (count <= 1) return null;
+  if (count > MAX_SEED_VARIANTS) throw new Error(`件数は ${MAX_SEED_VARIANTS} 件までにする`);
+  if (parts.length === 1) {
+    const start = Number(parts[0]);
+    if (!Number.isInteger(start) || start < 0 || start + count - 1 > MAX_SEED) throw new Error(`seed は 0〜${MAX_SEED} の整数にする`);
+    return Array.from({ length: count }, (_, i) => start + i);
+  }
+  const seeds = new Set<number>();
+  while (seeds.size < count) seeds.add(Math.floor(Math.random() * MAX_SEED));
+  return [...seeds];
+}
+
 // マニフェストの inputs（JSON Schema）から入力欄を作る
-export function GenerateForm({ adapters, onSubmitted }: { adapters: Manifest[]; onSubmitted: (resultId: string) => void }) {
+export function GenerateForm({
+  adapters,
+  onSubmitted,
+  onGroupSubmitted,
+}: {
+  adapters: Manifest[];
+  onSubmitted: (resultId: string) => void;
+  /** seed 違いの比較をグループとして投入したとき */
+  onGroupSubmitted: (groupId: string) => void;
+}) {
   const [adapterId, setAdapterId] = useState<string>('');
   const [values, setValues] = useState<Record<string, string>>({});
   const [files, setFiles] = useState<Record<string, File | null>>({});
+  const [variants, setVariants] = useState(1);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,6 +65,15 @@ export function GenerateForm({ adapters, onSubmitted }: { adapters: Manifest[]; 
     setError(null);
     const inputs: Record<string, unknown> = {};
     const params: Record<string, unknown> = {};
+    const seedKey = props.find(([, p]) => p['x-input'] === 'seed')?.[0];
+    let seeds: number[] | null = null;
+    try {
+      seeds = seedKey ? seedVariants(values[seedKey] ?? '', variants) : null;
+    } catch (err) {
+      setError((err as Error).message);
+      setBusy(false);
+      return;
+    }
     for (const [key, prop] of props) {
       if (prop['x-input'] === 'file') {
         const f = files[key];
@@ -43,12 +92,32 @@ export function GenerateForm({ adapters, onSubmitted }: { adapters: Manifest[]; 
       if (raw === undefined || raw === '') continue;
       const kind = prop['x-input'];
       if (kind === 'duration') params.duration = Number(raw);
-      else if (kind === 'seed') params.seed = Number(raw);
+      else if (kind === 'seed') {
+        if (!seeds) {
+          const seed = Number(raw.trim());
+          if (!Number.isInteger(seed) || seed < 0 || seed > MAX_SEED) {
+            setError(`seed は 0〜${MAX_SEED} の整数にする`);
+            setBusy(false);
+            return;
+          }
+          params.seed = seed;
+        }
+      }
       else inputs[key] = raw;
     }
     try {
-      const res = await api.generate({ adapter_id: manifest.id, inputs, params });
-      onSubmitted(res.result_id);
+      if (seeds) {
+        // 同じ入力・同じアダプターで seed だけ変えて、比較グループとしてまとめて投入する
+        const subject = String(inputs.text ?? '').trim() || props.map(([k]) => files[k]?.name).find(Boolean) || '';
+        const res = await api.createGroup({
+          request_text: `seed 比較（${manifest.name}）${subject ? `: ${subject.slice(0, 80)}` : ''}`,
+          items: seeds.map((seed) => ({ adapter_id: manifest.id, inputs, params: { ...params, seed } })),
+        });
+        onGroupSubmitted(res.group_id);
+      } else {
+        const res = await api.generate({ adapter_id: manifest.id, inputs, params });
+        onSubmitted(res.result_id);
+      }
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -106,12 +175,24 @@ export function GenerateForm({ adapters, onSubmitted }: { adapters: Manifest[]; 
             <label key={key}>
               {title}
               <input
-                type="number"
-                step={1}
-                placeholder="空欄ならランダム"
+                type="text"
+                inputMode="numeric"
+                placeholder="空欄ならランダム。カンマ区切りで複数指定すると seed 違いで比較"
                 value={values[key] ?? ''}
                 onChange={(e) => setValues({ ...values, [key]: e.target.value })}
               />
+              <span className="variants" title={`seed だけ変えて生成し、比較グループにまとめる（${MAX_SEED_VARIANTS} 件まで）。seed を指定するとその値からの連番、空欄ならランダム`}>
+                seed 違いで
+                <input
+                  type="number"
+                  min={1}
+                  max={MAX_SEED_VARIANTS}
+                  step={1}
+                  value={variants}
+                  onChange={(e) => setVariants(Math.max(1, Math.min(MAX_SEED_VARIANTS, Math.floor(Number(e.target.value) || 1))))}
+                />
+                件生成して比較
+              </span>
             </label>
           );
         }
@@ -145,7 +226,7 @@ export function GenerateForm({ adapters, onSubmitted }: { adapters: Manifest[]; 
       )}
       {error && <div className="error">{error}</div>}
       <button type="submit" className="primary" disabled={busy || missing.length > 0}>
-        {busy ? '投入中…' : 'キューに投入'}
+        {busy ? '投入中…' : variants > 1 && props.some(([, p]) => p['x-input'] === 'seed') ? `${variants} 件をキューに投入` : 'キューに投入'}
       </button>
     </form>
   );

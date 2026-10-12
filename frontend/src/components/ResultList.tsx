@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api, fileUrl, vrmaDownloadUrl, vrmaFileName, type Job, type Result } from '../api';
+import { api, fileUrl, groupOrder, vrmaDownloadUrl, vrmaFileName, type Job, type Result } from '../api';
 
 const STATUS_LABEL: Record<Result['status'], string> = {
   queued: '待機中',
@@ -145,7 +145,7 @@ export function ResultList({
                   onSelectGroup(
                     s.results
                       .filter((r) => r.status === 'done')
-                      .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id))
+                      .sort(groupOrder)
                       .map((r) => r.id),
                   )
                 }

@@ -27,6 +27,15 @@ log = logging.getLogger(__name__)
 GROUP_COLORS = ["#5b9cf5", "#ef6b6b", "#4cc38a", "#e5b450", "#b07cf5", "#4cc3c3", "#f58fc8", "#a0a8b5"]
 
 
+def group_order(result: dict) -> tuple:
+    """グループ内の並び順。作成時刻（秒単位）→ seed → ID。フロントエンドの比較ビューの色の順（App.tsx）と揃える。
+
+    seed 違いの比較は同じ秒に投入されるので、seed の昇順に並ぶ。
+    """
+    seed = result.get("seed")
+    return (result["created_at"], seed is None, seed if seed is not None else 0, result["id"])
+
+
 class Pipeline:
     def __init__(
         self,
@@ -487,8 +496,7 @@ class Pipeline:
     def run_group_preview(self, job: Job) -> None:
         gid = job.group_id
         done = [r for r in self.db.list_results(group_id=gid) if r["status"] == "done"]
-        # 作成時刻（秒単位）→ ID の順。フロントエンドの比較ビューの色の順と揃える
-        done.sort(key=lambda r: (r["created_at"], r["id"]))
+        done.sort(key=group_order)
         items = [
             (
                 self.settings.results_dir / r["id"] / r["files"]["source_motion"],

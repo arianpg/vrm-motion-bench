@@ -69,3 +69,37 @@ def test_cpu_job_waits_for_dependency():
     run_until_done(queue, [parent, child])
     queue.stop()
     assert order == ["p", "c"]
+
+
+def test_cpu_jobs_of_same_model_run_one_at_a_time():
+    """CPU のワーカーが複数あっても、同じモデル（CPU のアダプター）のジョブは 1 件ずつ流す。別のジョブは並行してよい。"""
+    queue = JobQueue(EventBus(), cpu_workers=3)
+    lock = threading.Lock()
+    running: dict[str, int] = {}
+    peak: dict[str, int] = {}
+
+    def handler(job: Job) -> None:
+        key = job.model_key or job.id
+        queue.update(job, status="loading")  # 実際の処理と同じく、コンテナの起動中は running 以外の状態になる
+        time.sleep(0.01)
+        with lock:
+            running[key] = running.get(key, 0) + 1
+            peak[key] = max(peak.get(key, 0), running[key])
+        time.sleep(0.05)
+        with lock:
+            running[key] -= 1
+
+    queue.register("motion", handler)
+    queue.register("convert", handler)
+    jobs = [Job(id=f"m{i}", type="motion", resource="cpu", model_key="momask") for i in range(3)]
+    jobs += [Job(id=f"c{i}", type="convert", resource="cpu") for i in range(2)]
+    for j in jobs:
+        queue.submit(j)
+    started = time.time()
+    queue.start()
+    run_until_done(queue, jobs)
+    queue.stop()
+    assert all(j.status == "done" for j in jobs)
+    assert peak["momask"] == 1
+    assert time.time() - started < 0.05 * 5  # 変換は MoMask と並行して進む
+
