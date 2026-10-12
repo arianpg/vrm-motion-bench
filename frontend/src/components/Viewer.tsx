@@ -25,6 +25,9 @@ export function Viewer({
   const [follow, setFollow] = useState(true);
   const [contacts, setContacts] = useState(true);
   const [hasContacts, setHasContacts] = useState(false);
+  const [hasAudio, setHasAudio] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const [audioBlocked, setAudioBlocked] = useState(false);
   const [layout, setLayout] = useState<Layout>('side');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -36,12 +39,13 @@ export function Viewer({
       setTime(t);
       setDuration(d);
     };
+    s.onAudioBlocked = setAudioBlocked;
     stage.current = s;
     if (import.meta.env.DEV) (window as unknown as { __vmbStage: VrmStage }).__vmbStage = s;
     return () => s.dispose();
   }, []);
 
-  const clipKey = clips.map((c) => `${c.vrmaUrl}#${c.modelUrl ?? ''}#${c.contactsUrl ?? ''}`).join('|');
+  const clipKey = clips.map((c) => `${c.vrmaUrl}#${c.modelUrl ?? ''}#${c.contactsUrl ?? ''}#${c.audioUrl ?? ''}`).join('|');
   useEffect(() => {
     const s = stage.current;
     if (!s) return;
@@ -52,6 +56,7 @@ export function Viewer({
       .then(() => {
         setViewports(s.viewports());
         setHasContacts(s.hasContacts);
+        setHasAudio(s.hasAudio);
       })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
@@ -68,6 +73,7 @@ export function Viewer({
   const toggle = () => {
     const s = stage.current!;
     s.playing = !s.playing;
+    if (s.playing) s.resumeAudio(); // クリックの中で再生を始めると、自動再生を止められていても音が出る
     setPlaying(s.playing);
   };
 
@@ -135,6 +141,20 @@ export function Viewer({
             <button className={layout === 'side' ? 'on' : ''} onClick={() => setLayout('side')}>横並び</button>
             <button className={layout === 'overlay' ? 'on' : ''} onClick={() => setLayout('overlay')}>重ね合わせ</button>
           </div>
+        )}
+        {hasAudio && (
+          <label className="toggle" title="入力音声をタイムラインに合わせて再生する（最初の音声付きクリップの音声）">
+            <input type="checkbox" checked={!muted} onChange={(e) => {
+              setMuted(!e.target.checked);
+              if (stage.current) stage.current.muted = !e.target.checked;
+            }} />
+            音声
+          </label>
+        )}
+        {hasAudio && audioBlocked && !muted && (
+          <button onClick={() => stage.current?.resumeAudio()} title="ブラウザが自動再生を止めたため、クリックで音声を再生する">
+            音声を再生
+          </button>
         )}
         {hasContacts && (
           <label className="toggle" title="足が接地しているフレームで足元に印を出す（接地フラグがあるモデルのみ）">

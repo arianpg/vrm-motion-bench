@@ -411,13 +411,17 @@ class Pipeline:
         # 元出力と SourceMotion を結果ディレクトリへ移す
         out = self.result_dir(rid)
         files: dict[str, str] = {}
-        for name in [body["source_motion"], *body.get("raw_outputs", [])]:
+        outputs = body.get("outputs", {})  # 種類 → ファイル名（EMAGE の入力音声など、画面で使うもの）
+        for name in {body["source_motion"], *body.get("raw_outputs", []), *outputs.values()}:
             src = job_out / name
             if src.exists():
                 shutil.move(str(src), out / name)
         files["source_motion"] = body["source_motion"]
         for name in body.get("raw_outputs", []):
             files[f"raw:{name}"] = name
+        for kind, name in outputs.items():
+            if (out / name).exists():
+                files[kind] = name
         shutil.rmtree(self.settings.jobs_dir / job.id, ignore_errors=True)
         self.db.add_result_files(rid, files)
         self._set_result(

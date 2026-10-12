@@ -1,0 +1,51 @@
+id: emage
+name: EMAGE（音声 → 全身の身振り）
+version: 0.1.0
+device: gpu
+
+# 音声から体・指・顔の表情・顎の動きを作る。動作は指示できないため、単体での生成だけに使う
+# （仕様書「EMAGE の方針」）。推論は確定的で、seed・尺の指定はない（尺は音声の長さ）
+inputs:
+  type: object
+  required: [audio]
+  properties:
+    audio:
+      type: string
+      title: 音声（英語の発話。2.2 秒以上）
+      x-input: file
+      x-accept: audio
+
+defaults: {}
+
+prompt:
+  llm_assist: false
+
+output:
+  skeleton: smplx55
+  fps: 30
+  up: "+Y"
+  forward: "+Z"
+  unit: m
+  rest_pose: tpose
+  foot_contacts: false
+  expressions: true  # 口の動き（aa / ih / ou / ee / oh）
+
+assets:
+  - id: emage-weights
+    kind: manual_download
+    path: emage/hf/hub/models--H-Liu1997--emage_audio
+    how_to: "HF_HOME=models/emage/hf hf download H-Liu1997/emage_audio"
+    license: 重みは Apache 2.0（Hugging Face の表記）。PantoMatrix のリポジトリにはライセンスの明記なし
+  - id: smplx-model
+    kind: manual_download
+    path: emage/evaltools/smplx_models/smplx/SMPLX_NEUTRAL_2020.npz
+    how_to: "HF_HOME=models/emage/hf hf download H-Liu1997/emage_evaltools smplx_models/smplx/SMPLX_NEUTRAL_2020.npz --local-dir models/emage/evaltools"
+    license: SMPL-X Model License（非商用の研究用途）
+
+resources:
+  vram_gb: 2
+  load_time_s: 15
+  container_image: vmb-adapter-emage
+  timeouts: {}
+
+license_note: "EMAGE: 重みは Apache 2.0（Hugging Face の表記）、PantoMatrix のコードはライセンスの明記なし。学習データは BEAT2（英語話者の講演）。SMPL-X のモデルは SMPL-X Model License。個人の検証用途で利用する。"

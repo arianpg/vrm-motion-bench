@@ -140,3 +140,20 @@ def test_contacts_mapped_to_nearest_mapped_ancestor(target):
     assert len(result.contacts["leftFoot"]) == result.num_frames == 31
     assert result.contacts["leftFoot"][0] and not result.contacts["leftFoot"][-1]
     assert result.contacts["rightFoot"][-1] and not result.contacts["rightFoot"][0]
+
+
+def test_expressions_are_resampled_and_clipped(target):
+    motion = motion_from_humanoid(target, frames=61, fps=60.0)
+    ramp = np.linspace(0.0, 1.2, 61, dtype=np.float32)
+    motion.expression_names = ["aa", "ou"]
+    motion.expression_weights = np.stack([ramp, 1.0 - ramp], axis=1)
+    result = retarget(motion, {b: b for b in target.bones}, target)
+    assert set(result.expressions) == {"aa", "ou"}
+    assert result.expressions["aa"].shape == (result.num_frames,) == (31,)
+    np.testing.assert_allclose(result.expressions["aa"][:5], ramp[:10:2], atol=1e-6)
+    assert result.expressions["aa"].max() == 1.0 and result.expressions["ou"].min() == 0.0
+
+
+def test_no_expressions(target):
+    result = retarget(motion_from_humanoid(target, frames=10), {b: b for b in target.bones}, target)
+    assert result.expressions is None

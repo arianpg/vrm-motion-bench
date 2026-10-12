@@ -104,6 +104,11 @@ export function ResultList({
               {r.files.start_image && <a href={fileUrl(r, 'start_image') ?? '#'} target="_blank" rel="noreferrer">開始画像</a>}
             </div>
           )}
+          {r.files.audio && (
+            <div className="links" onClick={(e) => e.stopPropagation()}>
+              <a href={fileUrl(r, 'audio') ?? '#'} target="_blank" rel="noreferrer">入力音声</a>
+            </div>
+          )}
           {r.error && <div className="error small">{r.error}</div>}
           {r.status === 'failed' && (
             <div>

@@ -29,6 +29,7 @@ docker build -f adapters/momask/docker/Dockerfile -t vmb-adapter-momask .   # CP
 docker build -f adapters/hymotion/docker/Dockerfile -t vmb-adapter-hymotion .
 docker build -f adapters/hyvideo/docker/Dockerfile -t vmb-adapter-hyvideo .     # 動画生成（GEM-X の前段）
 docker build -f adapters/gemx/docker/Dockerfile -t vmb-adapter-gemx .
+docker build -f adapters/emage/docker/Dockerfile -t vmb-adapter-emage .
 
 # Kimodo の重み（初回起動時にも自動で取得されるが、事前に置いておくと速い）
 #   Llama-3-8B-Instruct は Hugging Face でのアクセス申請と HF_TOKEN が必要
@@ -77,6 +78,11 @@ hf download nvidia/GEM-X sam3d_body.ckpt model_config.yaml --local-dir $I/checkp
 hf download nvidia/GEM-X mhr_model.pt --local-dir $I/mhr_data
 hf download nvidia/GEM-X scale_mean.pth scale_comps.pth --local-dir $I/soma_data
 unset HF_HOME I
+
+# EMAGE（音声 → 全身の身振り）の重みと SMPL-X のモデル（骨格と口の動きの計算に使う）。合わせて約 750MB
+HF_HOME=$PWD/models/emage/hf hf download H-Liu1997/emage_audio
+HF_HOME=$PWD/models/emage/hf hf download H-Liu1997/emage_evaltools smplx_models/smplx/SMPLX_NEUTRAL_2020.npz \
+   --local-dir models/emage/evaltools
 
 # プロンプト支援の LLM（llama-server の公式イメージ）
 docker pull ghcr.io/ggml-org/llama.cpp:server-cuda13

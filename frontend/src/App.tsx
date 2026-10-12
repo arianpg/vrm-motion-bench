@@ -71,6 +71,7 @@ export default function App() {
                 color: COLORS[i % COLORS.length],
                 modelUrl: models[r.id] ?? null,
                 contactsUrl: fileUrl(r, 'contacts'),
+                audioUrl: fileUrl(r, 'audio'),
               },
             ]
           : [];

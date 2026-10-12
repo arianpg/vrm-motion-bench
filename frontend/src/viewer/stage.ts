@@ -18,6 +18,8 @@ export interface ClipItem {
   modelUrl?: string | null;
   /** 接地フラグ（contacts.json）。あるモデルだけ */
   contactsUrl?: string | null;
+  /** 入力音声（EMAGE など）。最初に音声を持つクリップの音声をタイムラインに合わせて再生する */
+  audioUrl?: string | null;
 }
 
 interface Contacts {
@@ -80,6 +82,7 @@ async function loadContacts(url: string | null | undefined): Promise<Contacts | 
  * - タイムラインの長さは一番長いクリップに合わせ、短いクリップは最後のフレームで止めて待つ
  * - 横並び: 画面を分割して 1 体ずつ描く（カメラの向きは共通）
  * - 重ね合わせ: 同じ場所に半透明・色分けで重ねる
+ * - 音声があるクリップでは、再生中は音声の再生位置を時刻の基準にする（映像を音声に合わせる）
  */
 export class VrmStage {
   private renderer: THREE.WebGLRenderer;
@@ -92,6 +95,7 @@ export class VrmStage {
   private resizeObserver: ResizeObserver;
   private loadToken = 0;
   private overlayFollow = new THREE.Vector3();
+  private audio: HTMLAudioElement | null = null;
 
   time = 0;
   playing = true;
@@ -102,6 +106,10 @@ export class VrmStage {
   /** 接地マーカー（接地フラグがあるクリップだけ） */
   showContacts = true;
   onTime?: (time: number, duration: number) => void;
+  /** 音声の自動再生がブラウザに止められたとき（ユーザー操作のあとに resumeAudio() を呼ぶ） */
+  onAudioBlocked?: (blocked: boolean) => void;
+  private audioBlocked = false;
+  private audioMuted = false;
 
   constructor(private container: HTMLElement, private modelUrl: string) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -139,6 +147,59 @@ export class VrmStage {
 
   setModelUrl(url: string) {
     this.modelUrl = url;
+  }
+
+  get hasAudio(): boolean {
+    return this.audio !== null;
+  }
+
+  set muted(value: boolean) {
+    this.audioMuted = value;
+    if (this.audio) this.audio.muted = value;
+  }
+
+  private setAudio(url: string | null) {
+    if (this.audio?.dataset.src === (url ?? '')) return;
+    this.audio?.pause();
+    this.audio = null;
+    this.setAudioBlocked(false);
+    if (!url) return;
+    const audio = new Audio(url);
+    audio.dataset.src = url;
+    audio.preload = 'auto';
+    audio.muted = this.audioMuted;
+    this.audio = audio;
+  }
+
+  private setAudioBlocked(blocked: boolean) {
+    if (this.audioBlocked === blocked) return;
+    this.audioBlocked = blocked;
+    this.onAudioBlocked?.(blocked);
+  }
+
+  /** ユーザー操作（クリック）の中から呼ぶと、止められていた音声を再生できる */
+  resumeAudio() {
+    if (!this.audio) return;
+    this.setAudioBlocked(false);
+    this.syncAudio(true);
+  }
+
+  /** 音声の状態（再生・一時停止・位置・速度）をタイムラインに合わせる */
+  private syncAudio(force = false) {
+    const audio = this.audio;
+    if (!audio) return;
+    audio.playbackRate = this.speed;
+    const want = this.playing && this.duration > 0 && this.time < Math.min(this.duration, audio.duration || Infinity);
+    if (!want) {
+      if (!audio.paused) audio.pause();
+      return;
+    }
+    if (force || Math.abs(audio.currentTime - this.time) > 0.1) audio.currentTime = this.time;
+    if (audio.paused && !this.audioBlocked) {
+      audio.play().catch((e: DOMException) => {
+        if (e.name === 'NotAllowedError') this.setAudioBlocked(true);
+      });
+    }
   }
 
   setLayout(layout: Layout) {
@@ -191,6 +252,7 @@ export class VrmStage {
     this.clearActors();
     this.actors = loaded;
     loaded.forEach((a) => this.scene.add(a.vrm.scene));
+    this.setAudio(items.find((i) => i.audioUrl)?.audioUrl ?? null);
     this.applyAppearance();
     this.time = 0;
     this.apply();
@@ -222,6 +284,7 @@ export class VrmStage {
 
   seek(time: number) {
     this.time = Math.max(0, Math.min(time, this.duration));
+    if (this.audio) this.audio.currentTime = this.time;
     this.apply();
     this.snapFollow();
   }
@@ -295,10 +358,19 @@ export class VrmStage {
     this.last = now;
     const duration = this.duration;
     if (this.playing && duration > 0) {
-      this.time += dt * this.speed;
-      if (this.time > duration) this.time %= duration;
+      const audio = this.audio;
+      if (audio && !audio.paused && !audio.seeking && audio.currentTime < duration) {
+        this.time = audio.currentTime;
+      } else {
+        this.time += dt * this.speed;
+      }
+      if (this.time >= duration) {
+        this.time %= duration;
+        if (audio) audio.currentTime = this.time;
+      }
       this.apply();
     }
+    this.syncAudio();
     this.updateFollow();
     this.controls.update();
     this.render();
@@ -382,6 +454,7 @@ export class VrmStage {
 
   dispose() {
     cancelAnimationFrame(this.raf);
+    this.setAudio(null);
     this.resizeObserver.disconnect();
     this.clearActors();
     this.controls.dispose();

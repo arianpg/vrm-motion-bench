@@ -47,6 +47,11 @@ export function CompareTable({
                     <a href={fileUrl(r, 'video') ?? '#'} target="_blank" rel="noreferrer">入力動画</a>
                   </div>
                 )}
+                {r.files.audio && (
+                  <div className="small">
+                    <a href={fileUrl(r, 'audio') ?? '#'} target="_blank" rel="noreferrer">入力音声</a>
+                  </div>
+                )}
               </td>
               <td>{r.seed ?? '–'}</td>
               <td>{r.duration?.toFixed(1) ?? '–'}s</td>

@@ -1,0 +1,59 @@
+# EMAGE（SMPL-X の 55 関節。SMPL-X 2020 のモデルファイルの joint2num の名前）→ VRM 1.0 ヒューマノイドボーン名
+# 目（L_Eye、R_Eye）は EMAGE が動かさないので載せない。指は付け根（Index1 等）が VRM の Proximal に当たる
+# （SMPL-X は親指以外の中手骨を持たない）。親指は Thumb1 が中手骨（Metacarpal）。
+Pelvis: hips
+Spine1: spine
+Spine2: chest
+Spine3: upperChest
+Neck: neck
+Head: head
+Jaw: jaw
+
+L_Collar: leftShoulder
+L_Shoulder: leftUpperArm
+L_Elbow: leftLowerArm
+L_Wrist: leftHand
+L_Thumb1: leftThumbMetacarpal
+L_Thumb2: leftThumbProximal
+L_Thumb3: leftThumbDistal
+L_Index1: leftIndexProximal
+L_Index2: leftIndexIntermediate
+L_Index3: leftIndexDistal
+L_Middle1: leftMiddleProximal
+L_Middle2: leftMiddleIntermediate
+L_Middle3: leftMiddleDistal
+L_Ring1: leftRingProximal
+L_Ring2: leftRingIntermediate
+L_Ring3: leftRingDistal
+L_Pinky1: leftLittleProximal
+L_Pinky2: leftLittleIntermediate
+L_Pinky3: leftLittleDistal
+
+R_Collar: rightShoulder
+R_Shoulder: rightUpperArm
+R_Elbow: rightLowerArm
+R_Wrist: rightHand
+R_Thumb1: rightThumbMetacarpal
+R_Thumb2: rightThumbProximal
+R_Thumb3: rightThumbDistal
+R_Index1: rightIndexProximal
+R_Index2: rightIndexIntermediate
+R_Index3: rightIndexDistal
+R_Middle1: rightMiddleProximal
+R_Middle2: rightMiddleIntermediate
+R_Middle3: rightMiddleDistal
+R_Ring1: rightRingProximal
+R_Ring2: rightRingIntermediate
+R_Ring3: rightRingDistal
+R_Pinky1: rightLittleProximal
+R_Pinky2: rightLittleIntermediate
+R_Pinky3: rightLittleDistal
+
+L_Hip: leftUpperLeg
+L_Knee: leftLowerLeg
+L_Ankle: leftFoot
+L_Foot: leftToes
+R_Hip: rightUpperLeg
+R_Knee: rightLowerLeg
+R_Ankle: rightFoot
+R_Foot: rightToes

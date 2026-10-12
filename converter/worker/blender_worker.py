@@ -85,10 +85,11 @@ class Rig:
             o.hide_viewport = not visible
 
     def clear(self) -> None:
-        if self.arm.animation_data and self.arm.animation_data.action:
-            old = self.arm.animation_data.action
-            self.arm.animation_data.action = None
-            bpy.data.actions.remove(old)
+        for owner in (self.arm, self.arm.data):  # 表情のアクションはアーマチュアのデータ側に付く
+            if owner.animation_data and owner.animation_data.action:
+                old = owner.animation_data.action
+                owner.animation_data.action = None
+                bpy.data.actions.remove(old)
 
     def apply(self, result: RetargetResult) -> None:
         arm = self.arm
@@ -96,28 +97,9 @@ class Rig:
         # glTF ワールド → アーマチュア空間
         m_q = quat.multiply(to_xyzw(mw.to_quaternion().inverted()), GLTF_TO_BLENDER)
         m_inv = quat.inverse(m_q)
-        n = result.num_frames
 
-        if arm.animation_data is None:
-            arm.animation_data_create()
         self.clear()
-        action = bpy.data.actions.new("vmb_motion")
-        slot = action.slots.new(id_type="OBJECT", name=arm.name)
-        arm.animation_data.action = action
-        arm.animation_data.action_slot = slot
-        bag = anim_utils.action_ensure_channelbag_for_slot(action, slot)
-        frames = np.arange(1, n + 1, dtype=np.float64)
-
-        def write(data_path: str, values: np.ndarray) -> None:
-            for i in range(values.shape[1]):
-                fc = bag.fcurves.new(data_path, index=i)
-                fc.keyframe_points.add(n)
-                co = np.empty((n, 2), dtype=np.float64)
-                co[:, 0], co[:, 1] = frames, values[:, i]
-                fc.keyframe_points.foreach_set("co", co.ravel())
-                fc.keyframe_points.foreach_set("interpolation", [1] * n)  # LINEAR
-                fc.update()
-
+        write = _new_action(arm, "OBJECT", "vmb_motion", result.num_frames)
         for k, vrm_bone in enumerate(result.bones):
             name = self.bone_names.get(vrm_bone)
             if name is None:
@@ -133,6 +115,42 @@ class Rig:
                 head -= np.array(mw.translation)
                 loc = quat.rotate(quat.inverse(rb)[None], head - np.array(bone.head_local))
                 write(f'pose.bones["{name}"].location', loc)
+        if result.expressions:
+            self._apply_expressions(result)
+
+    def _apply_expressions(self, result: RetargetResult) -> None:
+        """表情の重みを VRM Add-on の表情プレビュー値のキーにする。VRMA の書き出し時に表情トラックになる。"""
+        expressions = self.arm.data.vrm_addon_extension.vrm1.expressions.all_name_to_expression_dict()
+        known = {name: expr for name, expr in expressions.items() if name in result.expressions}
+        if not known:
+            return
+        write = _new_action(self.arm.data, "ARMATURE", "vmb_expressions", result.num_frames)
+        for name, expr in known.items():
+            write(expr.path_from_id("preview"), result.expressions[name].astype(np.float64)[:, None])
+
+
+def _new_action(owner: bpy.types.ID, id_type: str, name: str, n: int):
+    """owner に新しいアクションを付け、「データパスと [n, k] の値から LINEAR のキーを打つ関数」を返す。"""
+    if owner.animation_data is None:
+        owner.animation_data_create()
+    action = bpy.data.actions.new(name)
+    slot = action.slots.new(id_type=id_type, name=owner.name)
+    owner.animation_data.action = action
+    owner.animation_data.action_slot = slot
+    bag = anim_utils.action_ensure_channelbag_for_slot(action, slot)
+    frames = np.arange(1, n + 1, dtype=np.float64)
+
+    def write(data_path: str, values: np.ndarray) -> None:
+        for i in range(values.shape[1]):
+            fc = bag.fcurves.new(data_path, index=i)
+            fc.keyframe_points.add(n)
+            co = np.empty((n, 2), dtype=np.float64)
+            co[:, 0], co[:, 1] = frames, values[:, i]
+            fc.keyframe_points.foreach_set("co", co.ravel())
+            fc.keyframe_points.foreach_set("interpolation", [1] * n)  # LINEAR
+            fc.update()
+
+    return write
 
 
 class Converter:
@@ -199,6 +217,7 @@ class Converter:
             "duration": (result.num_frames - 1) / result.fps,
             "hips_scale": result.hips_scale,
             "mapped_bones": sorted(result.mapped),
+            "expressions": sorted(result.expressions or {}),
             "seconds": time.monotonic() - started,
         }
 

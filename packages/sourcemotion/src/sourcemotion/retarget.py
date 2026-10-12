@@ -60,6 +60,7 @@ class RetargetResult:
     hips_scale: float
     mapped: dict[str, str]  # VRM ボーン → 元骨格の関節
     contacts: dict[str, np.ndarray] | None = None  # VRM ボーン → [T] bool（接地フラグがある場合）
+    expressions: dict[str, np.ndarray] | None = None  # VRM の表情名 → [T] 0〜1（表情がある場合）
 
     @property
     def num_frames(self) -> int:
@@ -170,9 +171,11 @@ def retarget(
     hips = src_pos[:, mapped["hips"]] * scale
 
     contacts = _map_contacts(motion, mapped, target_fps)
+    expressions = _resample_expressions(motion, target_fps)
     local, hips = resample(local, hips, motion.fps, target_fps)
     return RetargetResult(
         contacts=contacts,
+        expressions=expressions,
         bones=list(target.bones),
         parents=dict(target.parents),
         local_rotations=local.astype(np.float32),
@@ -207,6 +210,21 @@ def _map_contacts(motion: SourceMotion, mapped: dict[str, int], target_fps: floa
     m = int(round((n - 1) / motion.fps * target_fps)) + 1 if n > 1 else 1
     idx = np.rint(np.linspace(0, n - 1, m)).astype(int) if m > 1 else np.zeros(1, int)
     return {b: f[idx] for b, f in out.items()}
+
+
+def _resample_expressions(motion: SourceMotion, target_fps: float) -> dict[str, np.ndarray] | None:
+    """表情の重み（VRM の表情名ごと）を線形補間で target_fps にする。値は 0〜1 に収める。"""
+    if motion.expression_weights is None or not motion.expression_names:
+        return None
+    n = motion.num_frames
+    m = int(round((n - 1) / motion.fps * target_fps)) + 1 if n > 1 else 1
+    src_t = np.arange(n) / motion.fps
+    dst_t = np.arange(m) / target_fps
+    w = motion.expression_weights.astype(np.float64)
+    return {
+        name: np.clip(np.interp(dst_t, src_t, w[:, k]), 0.0, 1.0).astype(np.float32)
+        for k, name in enumerate(motion.expression_names)
+    }
 
 
 def resample(rot: np.ndarray, pos: np.ndarray, src_fps: float, dst_fps: float) -> tuple[np.ndarray, np.ndarray]:
