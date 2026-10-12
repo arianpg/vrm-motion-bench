@@ -186,7 +186,9 @@ class Pipeline:
         for item in items:
             draft = self.db.get_draft(item["draft_id"]) if item.get("draft_id") else None
             params: dict[str, Any] = {}
-            if item.get("duration") is not None:
+            manifest = self.manifests.get(item["adapter_id"])
+            # 尺の範囲を持たないアダプター（尺は常にモデルが決める）には尺を渡さない
+            if item.get("duration") is not None and manifest is not None and manifest.duration is not None:
                 params["duration"] = float(item["duration"])
             if item.get("seed") is not None:
                 params["seed"] = int(item["seed"])

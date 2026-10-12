@@ -32,6 +32,7 @@ docker build -f adapters/hyvideo/docker/Dockerfile -t vmb-adapter-hyvideo .     
 docker build -f adapters/gemx/docker/Dockerfile -t vmb-adapter-gemx .
 docker build -f adapters/emage/docker/Dockerfile -t vmb-adapter-emage .
 docker build -f adapters/edge/docker/Dockerfile -t vmb-adapter-edge .
+docker build -f adapters/motionstreamer/docker/Dockerfile -t vmb-adapter-motionstreamer .
 
 # Kimodo の重み（初回起動時にも自動で取得されるが、事前に置いておくと速い）
 #   Llama-3-8B-Instruct は Hugging Face でのアクセス申請と HF_TOKEN が必要
@@ -92,6 +93,14 @@ mkdir -p models/edge/jukemirlib && cd models/edge/jukemirlib
 J=https://openaipublic.azureedge.net/jukebox/models/5b
 curl -fO $J/vqvae.pth.tar && curl -fO $J/prior_level_2.pth.tar   # 遅い場合は curl -r で分割して並列に取得する
 cd -
+
+# MotionStreamer（テキスト → SMPL-X の体 22 関節）の重みと、テキストエンコーダ sentence-T5-XXL（約 9.7GB）。合わせて約 11GB
+export HF_HOME=$PWD/models/motionstreamer/hf M=models/motionstreamer
+hf download lxxiao/MotionStreamer Causal_TAE/net_last.pth Experiments/t2m_model/latest.pth --local-dir $M/ckpts
+hf download lxxiao/272-dim-HumanML3D --repo-type dataset --include 'mean_std/*' --local-dir $M/ckpts/humanml3d_272
+hf download sentence-transformers/sentence-t5-xxl --exclude pytorch_model.bin --exclude '2_Dense/pytorch_model.bin' \
+   --local-dir $M/sentencet5-xxl   # 止まる場合は curl -r で分割して並列に取得し、sha256 を確かめる
+unset HF_HOME M
 
 # プロンプト支援の LLM（llama-server の公式イメージ）
 docker pull ghcr.io/ggml-org/llama.cpp:server-cuda13

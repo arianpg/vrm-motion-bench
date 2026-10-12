@@ -14,7 +14,7 @@ VRM Motion Bench が使う・同梱するもののライセンスと、生成し
 | 条件 | 対象 | 根拠 |
 | --- | --- | --- |
 | AI 生成であることを、はっきり明示する | HY-Motion、GEM-X のテキスト入力（HunyuanVideo 1.5 で作った動画を経由） | Tencent の利用規定 12 項（公開の場に置くときは機械生成であることを明示的かつ目立つように示す） |
-| 商用で使わない（収益化した投稿や、製品・サービスの宣伝を含む） | EDGE、EMAGE、MoMask | Jukebox（作った内容も商用不可）、SMPL・SMPL-X（非商用の研究・教育・芸術のみ）、AMASS・HumanML3D（非商用の研究用途） |
+| 商用で使わない（収益化した投稿や、製品・サービスの宣伝を含む） | EDGE、EMAGE、MoMask、MotionStreamer | Jukebox（作った内容も商用不可）、SMPL・SMPL-X（非商用の研究・教育・芸術のみ）、AMASS・HumanML3D（非商用の研究用途。MotionStreamer の 272 次元版は学術用途） |
 | Jukebox を使ったことを示す | EDGE | Jukebox のライセンス（OpenAI の Jukebox で作ったことを明示するよう求めている） |
 | 偽の内容・誤解を招く内容・なりすましに使わない | EMAGE（SMPL-X）、HY-Motion・HunyuanVideo（Tencent） | SMPL-X Model License、Tencent の利用規定 13 項 |
 
@@ -45,6 +45,7 @@ VRM Motion Bench が使う・同梱するもののライセンスと、生成し
 | GEM-X | Apache 2.0 | NVIDIA Open Model License | SAM 3D Body（SAM License。出版物では謝辞を求める）、ViTPose・YOLOX | SOMA・MHR（Apache 2.0） |
 | HunyuanVideo 1.5（GEM-X の前段） | Tencent Hunyuan Community License | 同左（HY-Motion と同じ条件） | Qwen2.5-VL-7B（Apache 2.0）、byT5（Apache 2.0）、Glyph-SDXL-v2（明記なし）、SigLIP（Apache 2.0） | 開始画像は Z-Image Turbo（Apache 2.0）で生成 |
 | EMAGE | PantoMatrix のリポジトリに明記なし | Apache 2.0（Hugging Face の表記） | — | BEAT2（Apache 2.0）。SMPL-X（SMPL-X Model License：非商用の研究・教育・芸術のみ） |
+| MotionStreamer | Project Registration License v1.0（研究・教育・評価・個人の目的は登録不要。組織のプロジェクトでの利用は事前登録が必要） | 同左（Hugging Face） | sentence-T5-XXL（Apache 2.0） | HumanML3D の 272 次元版（AMASS 由来。学術用途に限る）。骨格は SMPL-X の体 22 関節（モデルファイルは使わず、出力から推定） |
 | EDGE | MIT | MIT（リポジトリ） | Jukebox 5B（Noncommercial Use License：作った内容も商用不可。Jukebox の使用の明示を求める） | AIST++（注釈は CC BY 4.0、API は Apache 2.0。元の AIST Dance Video Database は独自の利用規約で、内容は未確認）。SMPL 由来の骨格（SMPL Model License：非商用） |
 
 ## そのほかのソフトウェア

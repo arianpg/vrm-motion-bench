@@ -1,0 +1,26 @@
+# MotionStreamer（SMPL-X の体 22 関節。名前は EMAGE の SMPL-X と同じ）→ VRM 1.0 ヒューマノイドボーン名
+# 指と顎はない。
+Pelvis: hips
+Spine1: spine
+Spine2: chest
+Spine3: upperChest
+Neck: neck
+Head: head
+
+L_Collar: leftShoulder
+L_Shoulder: leftUpperArm
+L_Elbow: leftLowerArm
+L_Wrist: leftHand
+R_Collar: rightShoulder
+R_Shoulder: rightUpperArm
+R_Elbow: rightLowerArm
+R_Wrist: rightHand
+
+L_Hip: leftUpperLeg
+L_Knee: leftLowerLeg
+L_Ankle: leftFoot
+L_Foot: leftToes
+R_Hip: rightUpperLeg
+R_Knee: rightLowerLeg
+R_Ankle: rightFoot
+R_Foot: rightToes

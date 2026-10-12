@@ -201,16 +201,24 @@ export function BatchPanel({
                       onChange={(ev) => setEdits({ ...edits, [d.id]: { ...e, prompt: ev.target.value } })}
                     />
                     <div className="row">
-                      <label>
-                        尺（秒）
-                        <input
-                          type="number"
-                          step={0.1}
-                          value={e.duration}
-                          disabled={confirmed}
-                          onChange={(ev) => setEdits({ ...edits, [d.id]: { ...e, duration: ev.target.value } })}
-                        />
-                      </label>
+                      {adapters.find((a) => a.id === d.adapter_id)?.duration ? (
+                        <label>
+                          尺（秒）
+                          <input
+                            type="number"
+                            step={0.1}
+                            value={e.duration}
+                            disabled={confirmed}
+                            onChange={(ev) => setEdits({ ...edits, [d.id]: { ...e, duration: ev.target.value } })}
+                          />
+                        </label>
+                      ) : (
+                        // 尺を指定できないアダプター（MotionStreamer など）はモデルが長さを決める
+                        <label>
+                          尺（秒）
+                          <input type="text" value="自動（モデルが決める）" disabled />
+                        </label>
+                      )}
                       <label>
                         seed
                         <input

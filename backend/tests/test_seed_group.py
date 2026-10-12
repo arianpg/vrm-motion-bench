@@ -53,3 +53,23 @@ def test_group_order_sorts_same_second_by_seed():
         {"id": "z", "created_at": "2026-10-12T03:59:59+00:00", "seed": 999},
     ]
     assert [r["id"] for r in sorted(results, key=group_order)] == ["z", "b", "c", "a"]
+
+
+def test_confirm_drops_duration_for_auto_length_adapter(tmp_path, monkeypatch):
+    """尺の範囲を持たないアダプター（MotionStreamer。尺は常にモデルが決める）には、確定時に尺を渡さない。"""
+    settings = replace(Settings(), data_dir=tmp_path, models_dir=tmp_path / "models")
+    for d in (settings.jobs_dir, settings.results_dir, settings.uploads_dir, settings.models_dir):
+        d.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr("vmb_backend.pipeline.check_assets", lambda m, d: [])
+    db = Database(tmp_path / "db.sqlite3")
+    manifests = load_manifests(REPO / "adapters")
+    assert manifests["motionstreamer"].duration is None
+    pipeline = Pipeline(settings, db, EventBus(), JobQueue(EventBus()), manifests, MagicMock(), MagicMock(), MagicMock())
+    gid = db.create_group("跳ぶ")
+    items = pipeline.confirm_group(gid, [
+        {"adapter_id": "motionstreamer", "prompt": "A person jumps.", "duration": 3.0, "seed": 1},
+        {"adapter_id": "momask", "prompt": "A person jumps.", "duration": 3.0, "seed": 1},
+    ])
+    params = {db.get_result(i["result_id"])["adapter_id"]: db.get_result(i["result_id"])["params"] for i in items}
+    assert params["motionstreamer"] == {"seed": 1}
+    assert params["momask"] == {"duration": 3.0, "seed": 1}

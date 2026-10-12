@@ -1,0 +1,74 @@
+id: motionstreamer
+name: MotionStreamer（HumanML3D 272）
+version: 0.1.0
+device: gpu
+
+inputs:
+  type: object
+  required: [text]
+  properties:
+    text:
+      type: string
+      title: プロンプト
+      x-input: text
+    seed:
+      type: integer
+      title: seed
+      x-input: seed
+
+# 尺は指定しない（常にモデルが終わりを決める。30fps・最大 312 フレーム＝10.4 秒）。
+# MotionStreamer は目標の長さを受け取らず先頭から順に作るため、尺で止めると動作が途中で切れる（2026-10-12 に確認）
+defaults: {}
+
+prompt:
+  llm_assist: true
+  guide: |
+    Write one English sentence in the HumanML3D caption style, e.g. "A person walks forward, then turns
+    around and sits down." Describe the body movement plainly in the third person ("A person ..."),
+    with one to three short actions in order. Avoid objects, other people, emotions, appearance and
+    camera directions. The model has no finger joints. The length is decided by the model (up to about 10 seconds).
+  rules:
+    language: en
+    starts_with: "A person"
+    max_words: 40
+
+options:
+  end_threshold: 0.1  # 終わりを表す潜在ベクトルとの距離がこれ未満で止める（公式のデモと同じ）
+
+output:
+  skeleton: smplx22
+  fps: 30
+  up: "+Y"
+  forward: "+Z"
+  unit: m
+  rest_pose: tpose
+  foot_contacts: false
+  expressions: false
+
+assets:
+  - id: motionstreamer-weights
+    kind: manual_download
+    path: motionstreamer/ckpts/Experiments/t2m_model/latest.pth
+    how_to: "HF_HOME=models/motionstreamer/hf hf download lxxiao/MotionStreamer Causal_TAE/net_last.pth Experiments/t2m_model/latest.pth --local-dir models/motionstreamer/ckpts と、hf download lxxiao/272-dim-HumanML3D --repo-type dataset --include 'mean_std/*' --local-dir models/motionstreamer/ckpts/humanml3d_272"
+    license: Project Registration License v1.0（研究・教育・評価・個人の目的は登録不要。組織のプロジェクトでの利用は事前登録が必要）
+  - id: sentence-t5-xxl
+    kind: manual_download
+    path: motionstreamer/sentencet5-xxl/model.safetensors
+    how_to: "hf download sentence-transformers/sentence-t5-xxl --exclude pytorch_model.bin --exclude '2_Dense/pytorch_model.bin' --local-dir models/motionstreamer/sentencet5-xxl（約 9.7GB）"
+    license: Apache 2.0
+
+resources:
+  vram_gb: 22  # 実測で約 20GB（ほとんどが fp32 の sentence-T5-XXL）
+  load_time_s: 30
+  container_image: vmb-adapter-motionstreamer
+  timeouts: {}
+
+# 比較動画・レポートに出すクレジット（docs/licenses.md）
+credit:
+  text: MotionStreamer (ZJU3DV)
+  noncommercial: true
+  notes:
+    - "学習データ（HumanML3D の 272 次元版、AMASS 由来）は学術用途に限られる"
+    - "組織のプロジェクトで使う場合は、MotionStreamer のライセンスに従って事前登録が必要"
+
+license_note: "MotionStreamer: Project Registration License v1.0（個人の検証用途は登録不要）。テキストエンコーダ: sentence-T5-XXL（Apache 2.0）。学習データは HumanML3D（AMASS 由来、学術用途）。個人の検証用途で利用する。"
