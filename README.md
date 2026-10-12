@@ -30,6 +30,7 @@ docker build -f adapters/hymotion/docker/Dockerfile -t vmb-adapter-hymotion .
 docker build -f adapters/hyvideo/docker/Dockerfile -t vmb-adapter-hyvideo .     # 動画生成（GEM-X の前段）
 docker build -f adapters/gemx/docker/Dockerfile -t vmb-adapter-gemx .
 docker build -f adapters/emage/docker/Dockerfile -t vmb-adapter-emage .
+docker build -f adapters/edge/docker/Dockerfile -t vmb-adapter-edge .
 
 # Kimodo の重み（初回起動時にも自動で取得されるが、事前に置いておくと速い）
 #   Llama-3-8B-Instruct は Hugging Face でのアクセス申請と HF_TOKEN が必要
@@ -83,6 +84,13 @@ unset HF_HOME I
 HF_HOME=$PWD/models/emage/hf hf download H-Liu1997/emage_audio
 HF_HOME=$PWD/models/emage/hf hf download H-Liu1997/emage_evaltools smplx_models/smplx/SMPLX_NEUTRAL_2020.npz \
    --local-dir models/emage/evaltools
+
+# EDGE（音楽 → ダンス）のチェックポイント（Google Drive、約 1.2GB）と Jukebox 5B の重み（約 10GB）
+uvx gdown 1BAR712cVEqB8GR37fcEihRV_xOC-fZrZ -O models/edge/checkpoint.pt
+mkdir -p models/edge/jukemirlib && cd models/edge/jukemirlib
+J=https://openaipublic.azureedge.net/jukebox/models/5b
+curl -fO $J/vqvae.pth.tar && curl -fO $J/prior_level_2.pth.tar   # 遅い場合は curl -r で分割して並列に取得する
+cd -
 
 # プロンプト支援の LLM（llama-server の公式イメージ）
 docker pull ghcr.io/ggml-org/llama.cpp:server-cuda13

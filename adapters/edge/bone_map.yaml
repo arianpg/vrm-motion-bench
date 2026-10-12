@@ -1,0 +1,26 @@
+# EDGE（SMPL の 24 関節。EDGE の vis.py の関節名）→ VRM 1.0 ヒューマノイドボーン名
+# 手の関節（lhand・rhand）は SMPL の手のひら側の端で、指を持たないため載せない（回転は手首に含まれる）
+root: hips
+belly: spine
+spine: chest
+chest: upperChest
+neck: neck
+head: head
+
+linshoulder: leftShoulder
+lshoulder: leftUpperArm
+lelbow: leftLowerArm
+lwrist: leftHand
+rinshoulder: rightShoulder
+rshoulder: rightUpperArm
+relbow: rightLowerArm
+rwrist: rightHand
+
+lhip: leftUpperLeg
+lknee: leftLowerLeg
+lankle: leftFoot
+ltoes: leftToes
+rhip: rightUpperLeg
+rknee: rightLowerLeg
+rankle: rightFoot
+rtoes: rightToes

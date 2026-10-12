@@ -1,0 +1,55 @@
+id: edge
+name: EDGE（音楽 → ダンス）
+version: 0.1.0
+device: gpu
+
+# 音楽からダンスを作る。動作は指示できないため、単体での生成だけに使う（仕様書「EDGE の方針」）。
+# 尺は音楽の長さ（5 秒の窓を 2.5 秒ずつずらして作るため、2.5 秒単位に切り捨て）
+inputs:
+  type: object
+  required: [audio]
+  properties:
+    audio:
+      type: string
+      title: 音楽（5 秒以上）
+      x-input: file
+      x-accept: audio
+    seed:
+      type: integer
+      title: seed
+      x-input: seed
+
+defaults: {}
+
+prompt:
+  llm_assist: false
+
+output:
+  skeleton: smpl24
+  fps: 30
+  up: "+Y"
+  forward: "+Z"
+  unit: m
+  rest_pose: tpose
+  foot_contacts: true
+  expressions: false
+
+assets:
+  - id: edge-checkpoint
+    kind: manual_download
+    path: edge/checkpoint.pt
+    how_to: "uvx gdown 1BAR712cVEqB8GR37fcEihRV_xOC-fZrZ -O models/edge/checkpoint.pt（公式の download_model.sh と同じファイル）"
+    license: MIT（EDGE のコードとチェックポイント）。学習データは AIST++
+  - id: jukebox-5b
+    kind: manual_download
+    path: edge/jukemirlib/prior_level_2.pth.tar
+    how_to: "models/edge/jukemirlib に https://openaipublic.blob.core.windows.net/jukebox/models/5b/ の vqvae.pth.tar と prior_level_2.pth.tar（約 10GB）を置く"
+    license: Jukebox の重みは Noncommercial Use License
+
+resources:
+  vram_gb: 14
+  load_time_s: 30
+  container_image: vmb-adapter-edge
+  timeouts: {}
+
+license_note: "EDGE: MIT。学習データは AIST++（非商用の研究用途）。音楽の特徴抽出の Jukebox の重みは Noncommercial Use License。個人の検証用途で利用する。"

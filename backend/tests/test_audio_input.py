@@ -1,4 +1,4 @@
-"""音声入力のアダプター（EMAGE）: アップロードした音声を渡し、アダプターが返した音声を結果のファイルにする。"""
+"""音声入力のアダプター（EMAGE・EDGE）: アップロードした音声を渡し、アダプターが返した音声を結果のファイルにする。"""
 
 from dataclasses import replace
 from pathlib import Path
@@ -35,9 +35,18 @@ def test_emage_manifest():
     assert m.inputs["properties"]["audio"]["x-accept"] == "audio"
 
 
-def test_requires_audio(pipeline):
+def test_edge_manifest():
+    m = load_manifests(REPO / "adapters")["edge"]
+    assert m.prompt.llm_assist is False
+    assert m.output.foot_contacts is True
+    assert m.inputs["properties"]["audio"]["x-accept"] == "audio"
+    assert m.inputs["properties"]["seed"]["x-input"] == "seed"
+
+
+@pytest.mark.parametrize("adapter_id", ["emage", "edge"])
+def test_requires_audio(pipeline, adapter_id):
     with pytest.raises(ContainerError):
-        pipeline.submit_generation(adapter_id="emage", inputs={}, params={})
+        pipeline.submit_generation(adapter_id=adapter_id, inputs={}, params={})
 
 
 def test_audio_output_is_registered(pipeline, tmp_path):
