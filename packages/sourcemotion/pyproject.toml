@@ -3,6 +3,7 @@ name = "sourcemotion"
 version = "0.1.0"
 description = "SourceMotion NPZ: the common motion format between adapters and the converter"
 requires-python = ">=3.10"
+license = "MIT"
 # Blender 同梱の Python でも動かすため、numpy 以外に依存しない
 dependencies = ["numpy>=1.23"]
 

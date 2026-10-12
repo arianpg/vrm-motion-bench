@@ -461,13 +461,13 @@ Vite と vite-plugin-singlefile で JS・CSS をインライン化したテン�
 | 4 | 比較動画の MP4 出力 | **実装済み（2026-10-12）**。詳細は「比較動画（MP4）の書き出し」。アプリだけ、解像度は書き出し時に横 1920×1080／縦 1080×1920 から選ぶ、入力音声を入れる、長さは一番長いクリップ 1 周（60 秒まで） | — |
 | 5 | 他のアダプター候補の調査 | **調査済み（2026-10-12）**。MotionStreamer は導入済み。結果は `docs/research/adapter-candidates.md`。比較の空白（音声・音楽の入力が 1 モデルずつ）を埋める順に、SemTalk（音声）→ Lodge（音楽）→ GEM-SMPL（複数の入力）→ MotionStreamer（テキスト）を推奨 | どれを導入するか |
 
-**GitHub 公開の準備**
+**GitHub 公開の準備**（2026-10-12 に実施）
 
-- README（`README.md`）の整理：前提条件（Docker・NVIDIA Container Toolkit・GPU と VRAM・ディスク容量、Hugging Face のアカウントとトークン、ゲート付きモデルのアクセス申請、Google Drive からの取得）をまとめ、モデルごとの準備手順と分ける
-- 紹介用の画像：比較ビューのスクリーンショットや、比較動画（#4）から作る GIF など
-- ライセンスの整理：本体のライセンスを決める。モデル・重み・データセットごとの一覧と、出力を公開するときの条件は `docs/licenses.md` にまとめた（2026-10-12）。非商用の制限があるもの（AIST++、BEAT2、SMPL／SMPL-X、Jukebox など）を明記する。重みは同梱せず、各自で取得する前提にする。同梱の棒人間 VRM と動画生成の開始画像の扱いも確認する
+- README：英語版（`README.md`）と日本語版（`README.ja.md`）に分け、前提条件（OS・GPU とドライバ・メモリ・ディスク・Docker と NVIDIA Container Toolkit・uv・Node.js・ffmpeg・Hugging Face のアカウントと Llama 3 のアクセス申請・SMPL-X の利用規約）と、モデルごとの準備の手順を整理した
+- 紹介用の画像：比較ビューのスクリーンショット（`docs/images/overview.png`）と、MP4 の書き出しから作った GIF（`docs/images/compare.gif`）
+- ライセンス：このリポジトリは MIT License。モデル・重み・データセットの一覧と、出力を公開するときの条件は `docs/licenses.md`
+- 公開前の確認：管理しているファイルと履歴の全体に、トークン・鍵・個人のパス・IP アドレスはなかった。開始画像の PNG には ComfyUI のワークフロー（標準テンプレート・モデル名・生成プロンプト）が入っているが、個人の情報はないので残す。コミットの作者のメールアドレスは GitHub の noreply のアドレスに書き換えた（今後もそのアドレスを使う）
 - ブランチ名を master から main に変える
-- 公開前の確認：`data/`・`models/`・`config/llm.yaml`・`assets/`、個人のパスや秘密情報が含まれていないこと（履歴も含む）。`assets/` は同梱して公開するため、ファイルの中身（VRM や画像のメタデータを含む）も確認する
 
 **これまでの作業から残っているもの**
 
