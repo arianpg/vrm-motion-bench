@@ -29,6 +29,7 @@ export function Viewer({
   const [muted, setMuted] = useState(false);
   const [audioBlocked, setAudioBlocked] = useState(false);
   const [layout, setLayout] = useState<Layout>('side');
+  const [inPlace, setInPlace] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [viewports, setViewports] = useState<ReturnType<VrmStage['viewports']>>([]);
@@ -50,9 +51,11 @@ export function Viewer({
     const s = stage.current;
     if (!s) return;
     s.setModelUrl(modelUrl ?? defaultModelUrl);
+    const reloading = s.inPlace !== inPlace && s.count > 0;
+    s.inPlace = inPlace;
     setError(null);
     setLoading(true);
-    s.setClips(clips)
+    s.setClips(clips, reloading)
       .then(() => {
         setViewports(s.viewports());
         setHasContacts(s.hasContacts);
@@ -61,7 +64,7 @@ export function Viewer({
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clipKey, modelUrl]);
+  }, [clipKey, modelUrl, inPlace]);
 
   useEffect(() => {
     const s = stage.current;
@@ -168,6 +171,10 @@ export function Viewer({
             接地
           </label>
         )}
+        <label className="toggle" title="腰の水平移動を止めて再生する（上下の動きと向きの回転は残す）。固定カメラで映し続ける用途での見え方の確認用">
+          <input type="checkbox" checked={inPlace} onChange={(e) => setInPlace(e.target.checked)} />
+          水平移動なし
+        </label>
         <label className="toggle" title="カメラが腰を追う">
           <input type="checkbox" checked={follow} onChange={(e) => {
             setFollow(e.target.checked);

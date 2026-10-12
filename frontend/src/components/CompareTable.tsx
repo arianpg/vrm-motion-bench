@@ -1,4 +1,21 @@
 import { fileUrl, vrmaDownloadUrl, vrmaFileName, type Result } from '../api';
+import { makeInPlaceVrma } from '../viewer/vrma';
+
+/** 水平移動を止めた VRMA を作って保存させる（元の VRMA を読み込んでブラウザ内で書き換える） */
+async function saveInPlace(url: string, name: string) {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    const blob = new Blob([makeInPlaceVrma(await res.arrayBuffer())], { type: 'model/gltf-binary' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    window.setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
+  } catch (e) {
+    alert(`保存できませんでした: ${(e as Error).message}`);
+  }
+}
 
 // 比較中の結果のメタデータを並べる。行ごとに VRM を差し替えられる
 export function CompareTable({
@@ -48,6 +65,17 @@ export function CompareTable({
                 {vrmaUrl(r) && (
                   <div className="small">
                     <a href={vrmaUrl(r)!} download={vrmaFileName(r)} title="VRMA ファイルを保存する">VRMA を保存</a>
+                    {' '}
+                    <a
+                      href="#"
+                      title="腰の水平移動を止めた VRMA を保存する（上下の動きと向きの回転は残す）"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        saveInPlace(vrmaUrl(r)!, vrmaFileName(r).replace(/\.vrma$/, '_inplace.vrma'));
+                      }}
+                    >
+                      （水平移動なし）
+                    </a>
                   </div>
                 )}
                 {r.files.video && (

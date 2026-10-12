@@ -8,6 +8,7 @@ import {
   createVRMAnimationClip,
   type VRMAnimation,
 } from '@pixiv/three-vrm-animation';
+import { makeInPlaceVrma } from './vrma';
 
 export interface ClipItem {
   id: string;
@@ -61,8 +62,15 @@ async function loadVrm(url: string): Promise<VRM> {
   return vrm;
 }
 
-async function loadVrma(url: string): Promise<VRMAnimation> {
-  const gltf = await loader.loadAsync(url);
+async function loadVrma(url: string, inPlace: boolean): Promise<VRMAnimation> {
+  let gltf;
+  if (inPlace) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`${url}: ${res.status}`);
+    gltf = await loader.parseAsync(makeInPlaceVrma(await res.arrayBuffer()), '');
+  } else {
+    gltf = await loader.loadAsync(url);
+  }
   const anims = gltf.userData.vrmAnimations as VRMAnimation[] | undefined;
   if (!anims?.length) throw new Error(`${url} に VRM Animation がありません`);
   return anims[0];
@@ -105,6 +113,8 @@ export class VrmStage {
   layout: Layout = 'side';
   /** 接地マーカー（接地フラグがあるクリップだけ） */
   showContacts = true;
+  /** 腰の水平移動を止めて再生する（setClips の読み込み時に反映する） */
+  inPlace = false;
   onTime?: (time: number, duration: number) => void;
   /** 音声の自動再生がブラウザに止められたとき（ユーザー操作のあとに resumeAudio() を呼ぶ） */
   onAudioBlocked?: (blocked: boolean) => void;
@@ -208,13 +218,15 @@ export class VrmStage {
     this.resize();
   }
 
-  async setClips(items: ClipItem[]): Promise<void> {
+  /** keepTime: 読み込み直したあとも再生位置を保つ（水平移動の切り替えなど） */
+  async setClips(items: ClipItem[], keepTime = false): Promise<void> {
     const token = ++this.loadToken;
+    const inPlace = this.inPlace;
     const loaded = await Promise.all(
       items.map(async (item): Promise<Actor> => {
         const [vrm, anim, contacts] = await Promise.all([
           loadVrm(item.modelUrl ?? this.modelUrl),
-          loadVrma(item.vrmaUrl),
+          loadVrma(item.vrmaUrl, inPlace),
           loadContacts(item.contactsUrl),
         ]);
         const clip = createVRMAnimationClip(anim, vrm);
@@ -254,7 +266,7 @@ export class VrmStage {
     loaded.forEach((a) => this.scene.add(a.vrm.scene));
     this.setAudio(items.find((i) => i.audioUrl)?.audioUrl ?? null);
     this.applyAppearance();
-    this.time = 0;
+    this.time = keepTime ? Math.min(this.time, this.duration) : 0;
     this.apply();
     this.snapFollow();
   }
