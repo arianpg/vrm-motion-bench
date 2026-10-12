@@ -31,6 +31,9 @@ FPS = 24.0
 MIN_FRAMES, MAX_FRAMES = 33, 241  # 4k+1 フレーム。既定は 121（約 5 秒）
 
 
+VAE_TILE_SIZE, VAE_TILE_OVERLAP = 128, 0.25
+
+
 def frames_for(duration: float) -> int:
     """尺（秒）を、モデルが受け付ける 4k+1 フレームに丸める。"""
     n = int(round((duration * FPS - 1) / 4)) * 4 + 1  # 最も近い 4k+1（5 秒 → 121 フレーム）
@@ -107,6 +110,18 @@ class HyVideoAdapter(Adapter):
             enable_group_offloading=group_offloading,
             overlap_group_offloading=True,
         )
+        # VAE のデコードがメモリのピーク（121 フレームを一度にデコードし、約 26GB 使う）。
+        # - 空間のタイルを公式の省メモリ設定（GPU が 21GB 以下のときに選ばれる 128px・重なり 0.25）にする。
+        #   32GB の GPU では 256px が選ばれるが、デスクトップなどの使用量しだいで足りなくなるため
+        # - 生成中に PyTorch が確保して使い終わったキャッシュを、デコードの直前に手放す
+        self.pipe.vae.set_tile_sample_min_size(VAE_TILE_SIZE, VAE_TILE_OVERLAP)
+        decode = self.pipe.vae.decode
+
+        def decode_after_empty_cache(*args, **kwargs):
+            torch.cuda.empty_cache()
+            return decode(*args, **kwargs)
+
+        self.pipe.vae.decode = decode_after_empty_cache
 
     def is_oom(self, error: BaseException) -> bool:
         return isinstance(error, torch.cuda.OutOfMemoryError) or super().is_oom(error)
@@ -143,6 +158,10 @@ class HyVideoAdapter(Adapter):
             prompt_rewrite=False,
             return_pre_sr_video=False,
             reference_image=str(image),
+            # GPU 1 枚なので、VAE のデコードを複数 GPU に分ける経路（既定で有効）を使わない。
+            # その経路は GPU 1 枚でも NCCL の all_gather を通り、全タイルの受け取り用コピーも作るため、
+            # メモリに余裕がないと NCCL の確保に失敗する（"Failed to CUDA calloc async"、2026-10-12 に発生）
+            enable_vae_tile_parallelism=False,
         )
         progress(0.95)
 
