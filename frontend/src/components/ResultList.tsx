@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api, fileUrl, type Job, type Result } from '../api';
+import { api, fileUrl, vrmaDownloadUrl, vrmaFileName, type Job, type Result } from '../api';
 
 const STATUS_LABEL: Record<Result['status'], string> = {
   queued: '待機中',
@@ -102,6 +102,11 @@ export function ResultList({
             <div className="links" onClick={(e) => e.stopPropagation()}>
               <a href={fileUrl(r, 'video') ?? '#'} target="_blank" rel="noreferrer">入力動画</a>
               {r.files.start_image && <a href={fileUrl(r, 'start_image') ?? '#'} target="_blank" rel="noreferrer">開始画像</a>}
+            </div>
+          )}
+          {r.files.vrma && (
+            <div className="links" onClick={(e) => e.stopPropagation()}>
+              <a href={vrmaDownloadUrl(r) ?? '#'} download={vrmaFileName(r)} title="VRMA ファイルを保存する">VRMA を保存</a>
             </div>
           )}
           {r.files.audio && (

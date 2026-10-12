@@ -1,4 +1,4 @@
-import { fileUrl, type Result } from '../api';
+import { fileUrl, vrmaDownloadUrl, vrmaFileName, type Result } from '../api';
 
 // 比較中の結果のメタデータを並べる。行ごとに VRM を差し替えられる
 export function CompareTable({
@@ -7,12 +7,15 @@ export function CompareTable({
   models,
   onModel,
   onRemove,
+  vrmaUrl = vrmaDownloadUrl,
 }: {
   results: Result[];
   colors: string[];
   models: Record<string, string | null>;
   onModel: (resultId: string, url: string | null) => void;
   onRemove: (resultId: string) => void;
+  /** VRMA のダウンロード先（レポートでは埋め込みデータの blob URL） */
+  vrmaUrl?: (result: Result) => string | null;
 }) {
   if (results.length === 0) return null;
   const sec = (v: number | null) => (v == null ? '–' : `${v.toFixed(1)}s`);
@@ -41,6 +44,11 @@ export function CompareTable({
                 {r.final_prompt ?? String(r.inputs.text ?? '')}
                 {r.llm_prompt && r.llm_prompt !== r.final_prompt && (
                   <div className="muted small">LLM 案: {r.llm_prompt}</div>
+                )}
+                {vrmaUrl(r) && (
+                  <div className="small">
+                    <a href={vrmaUrl(r)!} download={vrmaFileName(r)} title="VRMA ファイルを保存する">VRMA を保存</a>
+                  </div>
                 )}
                 {r.files.video && (
                   <div className="small">

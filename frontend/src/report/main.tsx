@@ -72,6 +72,7 @@ function ReportApp({ data }: { data: ReportData }) {
           models={models}
           onModel={(id, url) => setModels((prev) => ({ ...prev, [id]: url }))}
           onRemove={(id) => setVisible((prev) => prev.filter((x) => x !== id))}
+          vrmaUrl={(r) => vrmaUrls[data.results.findIndex((x) => x.id === r.id)] ?? null}
         />
         {visible.length < data.results.length && (
           <div className="restore">

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
@@ -193,13 +195,18 @@ def build_router(app_state) -> APIRouter:
         return {"result_id": new_rid, "job_id": job.id}
 
     @r.get("/results/{rid}/files/{name}")
-    def get_result_file(rid: str, name: str) -> FileResponse:
+    def get_result_file(rid: str, name: str, download: str | None = None) -> FileResponse:
+        """download を指定すると、その名前で保存させる（VRMA の保存など。拡張子は元のファイルと同じにする）。"""
         result = s.db.get_result(rid)
         if result is None or name not in result["files"].values():
             raise HTTPException(404, "file not found")
         path = s.settings.results_dir / rid / name
         if not path.exists():
             raise HTTPException(404, "file not found")
+        if download is not None:
+            if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,150}", download) or Path(download).suffix != path.suffix:
+                raise HTTPException(422, "invalid download name")
+            return FileResponse(path, filename=download)
         return FileResponse(path, filename=name)
 
     @r.get("/jobs")

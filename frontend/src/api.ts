@@ -181,4 +181,14 @@ export const fileUrl = (result: Result, kind: string): string | null => {
   return name ? `/api/results/${result.id}/files/${encodeURIComponent(name)}` : null;
 };
 
+/** VRMA を保存するときのファイル名（{アダプター}_seed{seed}_{結果ID}.vrma。seed がなければ省く） */
+export const vrmaFileName = (result: Result): string =>
+  [result.adapter_id, result.seed != null ? `seed${result.seed}` : null, result.id].filter(Boolean).join('_') + '.vrma';
+
+/** VRMA を vrmaFileName の名前で保存させる URL（サーバーの Content-Disposition が download 属性より優先されるため、名前も渡す） */
+export const vrmaDownloadUrl = (result: Result): string | null => {
+  const url = fileUrl(result, 'vrma');
+  return url && `${url}?download=${encodeURIComponent(vrmaFileName(result))}`;
+};
+
 export const STICKMAN_URL = '/api/assets/stickman.vrm';
